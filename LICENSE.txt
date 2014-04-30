@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 Copyright (c) 2014 by Vi (PariahVi).
-=======
-Copyright (c) 2014 by Violet (PariahVi).
->>>>>>> bb8402b27d25890264d5e7404fda2b4e980684e9
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
