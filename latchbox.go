@@ -25,7 +25,7 @@ import (
 
 const (
     protocolVersion = 1
-    version = "v0.1.0.1"
+    version = "v0.1.0.2"
     title = "Latchbox " + version + " (Esc:QUIT"
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
@@ -76,7 +76,7 @@ var (
     menuList = []string{menu}
     w, h int
     passwordInput bool
-    step = make([]bool, 15)
+    step = make([]bool, 13)
     key1 string
     bottomCaption string
     contentString string
@@ -522,7 +522,7 @@ func lock() {
     orderDict = make(map[string]string)
     menu = "Welcome"
     menuList = []string{menu}
-    step = make([]bool, 15)
+    step = make([]bool, 13)
     key1 = ""
     bottomCaption = ""
     contentString = ""
@@ -1280,7 +1280,7 @@ func newESettings() {
         contentString = "Input New URL"
         bottomCaption = "Input New URL: "
     } else if step[12] {
-        contentString = "Input New Group (Required)"
+        contentString = "Input New Group"
         bottomCaption = "Input New Group: "
     } else {
         contentString = "Input New Comment"
@@ -1413,14 +1413,14 @@ func newEOptions(ev termbox.Event) {
                                     !inString(value, "/ ") {
                                 contentExtra = ""
                                 newValue = append(newValue, value)
-                                step[12], step[13] = false, true
+                                step[12] = false
                             } else {
                                 contentExtra = "Invalid Group Name"
                             }
                         } else {
                             contentExtra = ""
                             newValue = append(newValue, value)
-                            step[12], step[13] = false, true
+                            step[12] = false
                         }
                     }
                 } else {
@@ -1663,7 +1663,7 @@ func editContentSettings() {
             contentString = "Input New URL"
             bottomCaption = "Input New URL: "
         } else if entryData == "Group" {
-            contentString = "Input New Group (Required)"
+            contentString = "Input New Group"
             bottomCaption = "Input New Group: "
         } else if entryData == "Comment" {
             contentString = "Input New Comment"
@@ -1840,6 +1840,10 @@ func editContentOptions(ev termbox.Event) {
                     emails[num] = value
                     menuList = menuList[:len(menuList) - 1]
                     menu = menuList[len(menuList) - 1]
+                } else if len(value) == 0 {
+                    contentExtra = "Username Required"
+                } else {
+                    contentExtra = "Username Too Long"
                 }
             } else if entryData == "Email" {
                 if len(value) < 256 {
@@ -1856,7 +1860,7 @@ func editContentOptions(ev termbox.Event) {
                     menu = menuList[len(menuList) - 1]
                 }
             } else if entryData == "Group" {
-                if len(value) < 256 && len(value) > 0 {
+                if len(value) < 256{
                     group := value
                     name := names[num]
                     if group == "" {
@@ -1878,8 +1882,6 @@ func editContentOptions(ev termbox.Event) {
                     } else {
                         contentExtra = "Invalid Group Name"
                     }
-                } else if len(value) == 0 {
-                    contentExtra = "Group Name Required"
                 } else {
                     contentExtra = "Group Name Too Long"
                 }
@@ -2384,7 +2386,7 @@ mainloop:
                     contentExtra = ""
                     key1 = ""
                     entryData = ""
-                    step = make([]bool, 15)
+                    step = make([]bool, 13)
                     edit_box.text = make([]byte, 0)
                     edit_box.cursor_voffset = len(bottomCaption)
                     edit_box.cursor_boffset = len(bottomCaption)
