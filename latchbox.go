@@ -62,7 +62,6 @@ var (
     emails []string
     urls []string
     groups []string
-    types []string
     comments []string
     created []string
     modified []string
@@ -288,15 +287,7 @@ func parseFile() {
         } else {
             err = true
         }
-        packetPointer += 2
-        var entryType string
-        if len(packet) - packetPointer >= 1 && !err {
-            entryType = string(packet[packetPointer: packetPointer + 1])
-            types = append(types, entryType)
-        } else {
-            err = true
-        }
-        packetPointer += 1
+        packetPointer += 3
         var made string
         if len(packet) - packetPointer >= 4 && !err {
             made = string(packet[packetPointer: packetPointer + 4])
@@ -353,7 +344,7 @@ func writeData() {
         } else {
             data = append(data, []byte{0, 0}...)
         }
-        data = append(data, []byte(types[x])...)
+        data = append(data, uint8(0))
         made := timeToUnix(created[x])
         data = append(data, intByte(made, 4)...)
         edited := timeToUnix(modified[x])
@@ -524,7 +515,6 @@ func lock() {
     emails = make([]string, 0)
     urls = make([]string, 0)
     groups = make([]string, 0)
-    types = make([]string, 0)
     comments = make([]string, 0)
     created = make([]string, 0)
     modified = make([]string, 0)
@@ -816,7 +806,7 @@ func newPSettings() {
     locationTitle = "NEW PASSWORD FILE"
     options = "Enter:CONFIRM"
     bottomCaption = "Path for New Password File: "
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
     tmpDefault = defaultFile
     if defaultFile != "" {
         if len(defaultFile) > 1 {
@@ -899,7 +889,7 @@ func securePSettings() {
     } else if step[1] {
         bottomCaption = "Repeat New Passphrase: "
     }
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func securePOptions(ev termbox.Event) {
@@ -940,7 +930,7 @@ func openPSettings() {
     locationTitle = "OPEN PASSWORD FILE"
     options = "Enter:CONFIRM"
     bottomCaption = "Path to Password File: "
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
     tmpDefault = defaultFile
     if defaultFile != "" {
         if len(defaultFile) > 1 {
@@ -1018,7 +1008,7 @@ func unlockPSettings() {
     ctrlC = true
     passwordInput = true
     bottomCaption = "Input Passphrase: "
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
     locationTitle = "UNLOCK PASSWORD FILE"
     options = "Enter:CONFIRM"
 }
@@ -1105,7 +1095,7 @@ func copyESettings() {
     options = "Enter:CONFIRM"
     bottomCaption = "Input Entry Number: "
     contentString = displayNameGroups()
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func copyEOptions(ev termbox.Event) {
@@ -1181,7 +1171,7 @@ func viewESettings() {
     options = "Enter:CONFIRM"
     bottomCaption = "Input Entry Number: "
     contentString = displayNameGroups()
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func viewEOptions(ev termbox.Event) {
@@ -1227,7 +1217,6 @@ func viewContentSettings() {
     email := emails[orderList[entryNumber - 1]]
     url := urls[orderList[entryNumber - 1]]
     group := groups[orderList[entryNumber - 1]]
-    entryType := strconv.Itoa(int(types[orderList[entryNumber - 1]][0]))
     comment := comments[orderList[entryNumber - 1]]
     made := created[orderList[entryNumber - 1]]
     edited := modified[orderList[entryNumber - 1]]
@@ -1237,7 +1226,6 @@ func viewContentSettings() {
     contentString += "Email: " + email + "\n"
     contentString += "URL: " + url + "\n"
     contentString += "Group: " + group + "\n"
-    contentString += "Type: " + entryType + "\n"
     contentString += "Comment: " + comment + "\n\n"
     contentString += "Created: " + made + "\n"
     contentString += "Modified: " + edited + "\n"
@@ -1261,10 +1249,10 @@ func newESettings() {
     locationTitle = "NEW ENTRY"
     options = "Enter:CONFIRM"
     if step[0] {
-        contentString = "Input Name"
+        contentString = "Input New Name (Required)"
         bottomCaption = "Input New Name: "
     } else if step[1] {
-        contentString = "Input Username"
+        contentString = "Input New Username (Required)"
         bottomCaption = "Input New Username: "
     } else if step[2] {
         contentString = "Generate Password?"
@@ -1286,19 +1274,16 @@ func newESettings() {
         contentString = "Repeat New Password"
         bottomCaption = "Repeat New Password: "
     } else if step[10] {
-        contentString = "Input Email"
+        contentString = "Input New Email"
         bottomCaption = "Input New Email: "
     } else if step[11] {
-        contentString = "Input URL"
+        contentString = "Input New URL"
         bottomCaption = "Input New URL: "
     } else if step[12] {
-        contentString = "Input Group"
+        contentString = "Input New Group (Required)"
         bottomCaption = "Input New Group: "
-    } else if step[13] {
-        contentString = "Input Type (integer between 0 and 255)"
-        bottomCaption = "Input New Type: "
     } else {
-        contentString = "Input Comment"
+        contentString = "Input New Comment"
         bottomCaption = "Input New Comment: "
     }
     if step[8] || step[9] {
@@ -1311,7 +1296,7 @@ func newESettings() {
         bottomCaption = ""
         termbox.HideCursor()
     } else {
-        termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+        termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
     }
     if len(contentExtra) > 1 {
         contentString += "\n\n" + contentExtra
@@ -1352,7 +1337,7 @@ func newEOptions(ev termbox.Event) {
                     newValue = append(newValue, value)
                     step[1], step[2] = false, true
                 } else if len(value) == 0 {
-                    contentExtra = "Userame Required"
+                    contentExtra = "Username Required"
                 } else {
                     contentExtra = "Username Too Long"
                 }
@@ -1441,19 +1426,6 @@ func newEOptions(ev termbox.Event) {
                 } else {
                     contentExtra = "Group Name Too Long"
                 }
-            } else if step[13] {
-                typeInt, err := strconv.Atoi(value)
-                if err == nil {
-                    if typeInt < 256 && typeInt >= 0 {
-                        contentExtra = ""
-                        newValue = append(newValue, string(byte(typeInt)))
-                        step[13], step[14] = false, true
-                    } else {
-                        contentExtra = "Type Must be Between 0 and 255"
-                    }
-                } else {
-                    contentExtra = "Type Must be an Integer"
-                }
             } else {
                 if len(value) < 66536 {
                     contentExtra = ""
@@ -1463,7 +1435,6 @@ func newEOptions(ev termbox.Event) {
                     emails = append(emails, newValue[3])
                     urls = append(urls, newValue[4])
                     groups = append(groups, newValue[5])
-                    types = append(types, newValue[6])
                     comments = append(comments, value)
                     create := time.Now().Format(timeLayout)
                     created = append(created, create)
@@ -1528,7 +1499,7 @@ func deleteESettings() {
     options = "Enter:CONFIRM"
     bottomCaption = "Input Entry Number: "
     contentString = displayNameGroups()
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func deleteEOptions(ev termbox.Event) {
@@ -1579,7 +1550,6 @@ func deleteContentOptions(ev termbox.Event) {
             emails = append(emails[:num], emails[num + 1:]...)
             urls = append(urls[:num], urls[num + 1:]...)
             groups = append(groups[:num], groups[num + 1:]...)
-            types = append(types[:num], types[num + 1:]...)
             comments = append(comments[:num], comments[num + 1:]...)
             created = append(created[:num], created[num + 1:]...)
             modified = append(modified[:num], modified[num + 1:]...)
@@ -1604,7 +1574,7 @@ func editESettings() {
     options = "Enter:CONFIRM"
     bottomCaption = "Input Entry Number: "
     contentString = displayNameGroups()
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func editEOptions(ev termbox.Event) {
@@ -1643,13 +1613,13 @@ func editContentSettings() {
         contentString = "Choose What You Want to Edit for " +
             nameGroupsList[entryNumber - 1]
         options = "n:NAME  u:USERNAME  p:PASSWORD  e:EMAIL  w:URL  g:GROUP  " +
-            "t:TYPE"
+            "c:COMMENT"
     } else {
         options = "Enter:CONFIRM"
         if entryData == "Name" {
-            contentString = "Input New Name"
+            contentString = "Input New Name (Required)"
             bottomCaption = "Input New Name: "
-        } else if entryData == "Username" {
+        } else if entryData == "Username (Required)" {
             contentString = "Input New Username"
             bottomCaption = "Input New Username: "
         } else if entryData == "Password" {
@@ -1665,7 +1635,8 @@ func editContentSettings() {
                 passwordInput = false
                 contentString = "Input Password Length"
                 bottomCaption = "Input Password Length: "
-                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(),
+                    h - 1)
             } else if step[2] {
                 contentString = "Include Uppercase Letters in Password?"
             } else if step[3] {
@@ -1677,11 +1648,13 @@ func editContentSettings() {
             } else if step[6] {
                 contentString = "Input New Password"
                 bottomCaption = "Input New Password: "
-                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(),
+                    h - 1)
             } else {
                 contentString = "Repeat New Password"
                 bottomCaption = "Repeat New Password: "
-                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+                termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(),
+                    h - 1)
             }
         } else if entryData == "Email" {
             contentString = "Input New Email"
@@ -1690,18 +1663,15 @@ func editContentSettings() {
             contentString = "Input New URL"
             bottomCaption = "Input New URL: "
         } else if entryData == "Group" {
-            contentString = "Input New Group"
+            contentString = "Input New Group (Required)"
             bottomCaption = "Input New Group: "
-        } else if entryData == "Type" {
-            contentString = "Input New Type"
-            bottomCaption = "Input New Type: "
         } else if entryData == "Comment" {
             contentString = "Input New Comment"
             bottomCaption = "Input New Comment: "
         }
         if entryData != "Password" {
             passwordInput = false
-            termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+            termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
         }
         if len(contentExtra) > 0 {
             contentString += "\n\n" + contentExtra
@@ -1727,8 +1697,6 @@ func editContentOptions(ev termbox.Event) {
                 entryData = "URL"
             } else if ev.Ch == 'g' {
                 entryData = "Group"
-            } else if ev.Ch == 't' {
-                entryData = "Type"
             } else if ev.Ch == 'c' {
                 entryData = "Comment"
             }
@@ -1915,21 +1883,6 @@ func editContentOptions(ev termbox.Event) {
                 } else {
                     contentExtra = "Group Name Too Long"
                 }
-            } else if entryData == "Type" {
-                typeInt, err := strconv.Atoi(value)
-                if err == nil {
-                    if typeInt < 256 && typeInt >= 0 {
-                        contentString = "Type Changed"
-                        types[num] = string(byte(
-                            typeInt))
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
-                    } else {
-                        contentExtra = "Type Must be Between 0 and 255"
-                    }
-                } else {
-                    contentExtra = "Type Must be an Integer"
-                }
             } else if entryData == "Comment" {
                 if len(value) < 66536 {
                     contentString = "Comment Changed"
@@ -1983,7 +1936,7 @@ func passphraseSettings() {
     } else {
         bottomCaption = "Repeat New Password: "
     }
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h)
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func passphraseOptions(ev termbox.Event) {
