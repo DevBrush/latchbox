@@ -25,7 +25,7 @@ import (
 
 const (
     protocolVersion = 1
-    version = "v0.1.0.0"
+    version = "v0.1.0.1"
     title = "Latchbox " + version + " (Esc:QUIT"
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
