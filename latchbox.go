@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/atotto/clipboard"
+    "bitbucket.org/PariahVi/clipboard"
     "github.com/jameskeane/bcrypt"
     "github.com/nsf/termbox-go"
     "github.com/pmylund/sortutil"
@@ -24,8 +24,8 @@ import (
 )
 
 const (
-    protocolVersion = 1
-    version = "v0.1.0.2"
+    protocolVersion = 2
+    version = "v0.2.0.0"
     title = "Latchbox " + version + " (Esc:QUIT"
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
@@ -287,31 +287,54 @@ func parseFile() {
         } else {
             err = true
         }
-        packetPointer += 3
+        if pFileVersion == 1 {
+            packetPointer += 1
+        }
+        packetPointer += 2
         var made string
-        if len(packet) - packetPointer >= 4 && !err {
-            made = string(packet[packetPointer: packetPointer + 4])
+        var madeLen int
+        if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
+            madeLen = 8
+        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 && !err {
+            madeLen = 4
+        }
+        if madeLen > 0 {
+            made = string(packet[packetPointer: packetPointer + madeLen])
             var cInt float64
             for x := 0; x < len(made); x++ {
-                cInt += float64(made[x]) * math.Pow(256, 3 - float64(x))
+                cInt += float64(made[x]) * math.Pow(256, float64(madeLen - 1 -
+                    x))
             }
             made = time.Unix(int64(cInt), 0).Format(timeLayout)
             created = append(created, made)
         } else {
             err = true
         }
+        if pFileVersion != 1 {
+            packetPointer += 4
+        }
         packetPointer += 4
         var edited string
-        if len(packet) - packetPointer >= 4 && !err {
-            edited = string(packet[packetPointer: packetPointer + 4])
+        var editedLen int
+        if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
+            editedLen = 8
+        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 && !err {
+            editedLen = 4
+        }
+        if editedLen > 0 {
+            edited = string(packet[packetPointer: packetPointer + editedLen])
             var mInt float64
             for x := 0; x < len(edited); x++ {
-                mInt += float64(edited[x]) * math.Pow(256, 3 - float64(x))
+                mInt += float64(edited[x]) * math.Pow(256, float64(editedLen -
+                    1 - x))
             }
             edited = time.Unix(int64(mInt), 0).Format(timeLayout)
             modified = append(modified, edited)
         } else {
             err = true
+        }
+        if pFileVersion != 1 {
+            packetPointer += 4
         }
         packetPointer += 4
         var comment string
@@ -344,11 +367,10 @@ func writeData() {
         } else {
             data = append(data, []byte{0, 0}...)
         }
-        data = append(data, uint8(0))
         made := timeToUnix(created[x])
-        data = append(data, intByte(made, 4)...)
+        data = append(data, intByte(made, 8)...)
         edited := timeToUnix(modified[x])
-        data = append(data, intByte(edited, 4)...)
+        data = append(data, intByte(edited, 8)...)
         data = append(data, []byte(comments[x])...)
         dataList = append(dataList, strLenAppend(data, 3))
     }
@@ -366,7 +388,9 @@ func writeData() {
     dataEncrypt := encrypt(data, key)
     dataEncrypt = append([]byte(salt), dataEncrypt...)
     dataEncrypt = append(dataEncrypt, ptHash...)
-    doBackup()
+    if len(names) > 0 {
+        doBackup()
+    }
     ioutil.WriteFile(fPath, dataEncrypt, 0644)
 }
 
@@ -538,6 +562,9 @@ func hashKey(passphrase, salt string) []byte {
 
 func encrypt(message []byte, key []byte) []byte {
     x := (aes.BlockSize - len(message) % aes.BlockSize)
+    if x == 0 {
+        x = 16
+    }
     paddedMessage := message
     for i := 0; i < x; i++ {
         paddedMessage = append(paddedMessage, uint8(x))
@@ -556,7 +583,6 @@ func encrypt(message []byte, key []byte) []byte {
     ciphertext = append(iv, ciphertext...)
     return ciphertext
 }
-
 func decrypt(ciphertext, key []byte) []byte {
     block, err := aes.NewCipher(key)
     if err != nil {
@@ -575,7 +601,7 @@ func decrypt(ciphertext, key []byte) []byte {
 }
 
 func parseCt(fc []byte) (salt []byte, ct []byte, hash []byte, err error) {
-    if len(fc) < 109 {
+    if len(fc) < 125 {
         return nil, nil, nil, errors.New("Ciphertext length too small")
     } else if string(fc[:4]) != "$2a$" || (fc[5] != '$' && fc[6] != '$') {
         return nil, nil, nil, errors.New("Incorrect Salt Value")
@@ -747,7 +773,7 @@ func multiLine(valueString string, w int) []string {
 }
 
 func configParse() {
-    configFile := configDir + "config"
+    configFile := configDir + "config.txt"
     content, err := ioutil.ReadFile(configFile)
     if err == nil {
         configSplit := strings.Split(string(content), "\n")
@@ -769,7 +795,8 @@ func configParse() {
                     first -= 1
                 }
                 if configLineSplit[0] == "makeBackups" {
-                    if configLineSplit[1][first: last] == "true" {
+                    if strings.ToLower(
+                            configLineSplit[1][first: last]) == "true" {
                         backup = true
                     }
                 } else if configLineSplit[0] == "defaultPasswordFile" {
@@ -1619,8 +1646,8 @@ func editContentSettings() {
         if entryData == "Name" {
             contentString = "Input New Name (Required)"
             bottomCaption = "Input New Name: "
-        } else if entryData == "Username (Required)" {
-            contentString = "Input New Username"
+        } else if entryData == "Username" {
+            contentString = "Input New Username (Required)"
             bottomCaption = "Input New Username: "
         } else if entryData == "Password" {
             passwordInput = true
@@ -2276,11 +2303,17 @@ func makeConfig() {
         configDir + "passwords.lbp\""
     if _, err := os.Stat(configDir); err != nil {
         os.MkdirAll(configDir, 0755)
-        ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
+        ioutil.WriteFile(configDir + "config.txt", []byte(configContent), 0644)
     } else {
-        content, err := ioutil.ReadFile(configDir + "config")
-        if err != nil || string(content) == "" {
-            ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
+        content, err := ioutil.ReadFile(configDir + "config.txt")
+        if err != nil || len(content) == 0 {
+            content, err := ioutil.ReadFile(configDir + "config")
+            if err == nil && len(content) != 0 {
+                os.Rename(configDir + "config", configDir + "config.txt")
+            } else {
+                ioutil.WriteFile(configDir + "config.txt",
+                    []byte(configContent), 0644)
+            }
         }
     }
 }
