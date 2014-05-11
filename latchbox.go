@@ -25,7 +25,7 @@ import (
 
 const (
     protocolVersion = 2
-    version = "v0.2.0.0"
+    version = "v0.3.0.0"
     title = "Latchbox " + version + " (Esc:QUIT"
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
@@ -53,6 +53,7 @@ var (
     defaultFile string
     errMsg string
     passphrase string
+    tmpPassphrase string
     key string
     location string
     fileContents []byte
@@ -90,6 +91,7 @@ var (
     entryNumber int
     show bool
     configDir string
+    omit bool
 )
 
 func parseFile() {
@@ -149,7 +151,7 @@ func parseFile() {
             }
         }
         pointer += groupPacketLen
-    } else {
+    } else if len(groupPacket) != 0 {
         err = true
     }
     for pointer < len(fileContents) && !err {
@@ -553,8 +555,8 @@ func lock() {
     orderList = make([]int, 0)
 }
 
-func hashKey(passphrase, salt string) []byte {
-    hashed, _ := bcrypt.Hash(passphrase, salt)
+func hashKey(passValue, salt string) []byte {
+    hashed, _ := bcrypt.Hash(passValue, salt)
     hash := sha256.New()
     hash.Write([]byte(hashed))
     return hash.Sum(nil)
@@ -583,6 +585,7 @@ func encrypt(message []byte, key []byte) []byte {
     ciphertext = append(iv, ciphertext...)
     return ciphertext
 }
+
 func decrypt(ciphertext, key []byte) []byte {
     block, err := aes.NewCipher(key)
     if err != nil {
@@ -595,6 +598,9 @@ func decrypt(ciphertext, key []byte) []byte {
     padding := 0
     if len(plaintext) > 0 {
         padding = int(plaintext[len(plaintext) - 1])
+    }
+    if padding > 16 {
+        padding = 0
     }
     plaintext = plaintext[:len(plaintext) - padding]
     return plaintext
@@ -897,6 +903,7 @@ func newPOptions(ev termbox.Event) {
             }
             if fPath != "" {
                 step[0] = true
+                omit = true
                 menu = "Secure Password"
                 menuList = append(menuList, menu)
             }
@@ -910,12 +917,18 @@ func securePSettings() {
     ctrlC = true
     passwordInput = true
     locationTitle = "SECURE NEW PASSWORD FILE"
-    options = "Enter:CONFIRM"
+    options = "Enter:CONFIRM  Ctrl-T:"
     if step[0] {
         bottomCaption = "Input New Passphrase: "
-    } else if step[1] {
+    } else {
         bottomCaption = "Repeat New Passphrase: "
     }
+    if omit {
+        options += "INCLUDE"
+    } else {
+        options += "OMIT"
+    }
+    options += " KEY FILE"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
@@ -926,6 +939,12 @@ func securePOptions(ev termbox.Event) {
         valueEntered = true
         edit_box.text = make([]byte, 0)
         edit_box.MoveCursorTo(0)
+    } else if ev.Key == termbox.KeyCtrlT {
+        if omit {
+            omit = false
+        } else {
+            omit = true
+        }
     } else {
         textEdit(ev)
     }
@@ -933,17 +952,23 @@ func securePOptions(ev termbox.Event) {
         if step[0] {
             key1 = value
             contentString = ""
-            step[0], step[1] = false, true
-        } else if step[1] {
+            step[0] = false
+        } else {
             if value == key1 {
-                passphrase = value
-                writeData()
-                contentString = "Your Password File Was Created Successfully!"
-                menu = "Main Menu"
-                menuList = append(menuList, menu)
+                if !omit {
+                    tmpPassphrase = value
+                    menu = "Keyfile"
+                    menuList = append(menuList, menu)
+                } else {
+                    passphrase = value
+                    writeData()
+                    contentString = "Your Password File Was Created Successfully!"
+                    menu = "Main Menu"
+                    menuList = append(menuList, menu)
+                }
             } else {
                 contentString = "New Passphrases Do Not Match"
-                step[1], step[0] = false, true
+                step[0] = true
             }
             key1 = ""
         }
@@ -1024,6 +1049,7 @@ func openPOptions(ev termbox.Event) {
                 fPath = value
                 step[0] = true
                 contentString = ""
+                omit = true
                 menu = "Unlock Password"
                 menuList = append(menuList, menu)
             }
@@ -1035,9 +1061,15 @@ func unlockPSettings() {
     ctrlC = true
     passwordInput = true
     bottomCaption = "Input Passphrase: "
-    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
     locationTitle = "UNLOCK PASSWORD FILE"
-    options = "Enter:CONFIRM"
+    options = "Enter:CONFIRM  Ctrl-T:"
+    if omit {
+        options += "INCLUDE"
+    } else {
+        options += "OMIT"
+    }
+    options += " KEY FILE"
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
 func unlockPOptions(ev termbox.Event) {
@@ -1048,27 +1080,149 @@ func unlockPOptions(ev termbox.Event) {
         valueEntered = true
         edit_box.text = make([]byte, 0)
         edit_box.MoveCursorTo(0)
+    } else if ev.Key == termbox.KeyCtrlT {
+        if omit {
+            omit = false
+        } else {
+            omit = true
+        }
     } else {
         textEdit(ev)
     }
     if valueEntered {
-        salt, strippedCtext, hash, _ := parseCt(ciphertext)
-        hashedPassphrase := hashKey(value, string(salt))
-        plaintext := decrypt(strippedCtext, hashedPassphrase)
-        hashPt := sha512.New()
-        hashPt.Write(plaintext)
-        ptHash := hashPt.Sum(nil)
-        if string(hash) == string(ptHash) {
-            passphrase = value
-            fileContents = plaintext
-            parseFile()
-            contentString = ""
-            menu = "Main Menu"
+        if !omit {
+            tmpPassphrase = value
+            menu = "Keyfile"
             menuList = append(menuList, menu)
         } else {
-            contentString = "Incorrect Passphrase"
+            salt, strippedCtext, hash, _ := parseCt(ciphertext)
+            hashedPassphrase := hashKey(value, string(salt))
+            plaintext := decrypt(strippedCtext, hashedPassphrase)
+            hashPt := sha512.New()
+            hashPt.Write(plaintext)
+            ptHash := hashPt.Sum(nil)
+            if string(hash) == string(ptHash) {
+                passphrase = value
+                fileContents = plaintext
+                parseFile()
+                contentString = ""
+                menu = "Main Menu"
+                menuList = append(menuList, menu)
+            } else {
+                contentString = "Incorrect Passphrase/Keyfile Combination"
+            }
         }
     }
+}
+
+func keyfileSettings() {
+    ctrlC = true
+    passwordInput = false
+    bottomCaption = "Path to Keyfile: "
+    if menuList[len(menuList) - 1] == "Secure Password" {
+        locationTitle = "SECURE NEW PASSWORD FILE"
+    } else if menuList[len(menuList) - 1] == "Unlock Password" {
+        locationTitle = "UNLOCK PASSWORD FILE"
+    } else {
+        locationTitle = "CHANGE PASSPHRASE/KEYFILE"
+    }
+    options = "Enter:CONFIRM"
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
+}
+
+func keyfileOptions(ev termbox.Event) {
+    var valueEntered bool
+    if ev.Key == termbox.KeyEnter {
+        value = string(edit_box.text)
+        valueEntered = true
+        edit_box.text = make([]byte, 0)
+        edit_box.MoveCursorTo(0)
+    } else {
+        textEdit(ev)
+    }
+    if valueEntered {
+        keyfileContent, err := addKeyFile(value)
+        if err != nil {
+            contentString = "Cannot Open Keyfile"
+        } else {
+            hashContent := sha512.New()
+            hashContent.Write(keyfileContent)
+            contentHash := hashContent.Sum(nil)
+            tmpPassphrase += string(contentHash)
+            if menuList[len(menuList) - 2] == "Secure Password" {
+                passphrase = tmpPassphrase
+                writeData()
+                contentString = "Your Password File Was Created Successfully!"
+                tmpPassphrase = ""
+                menu = "Main Menu"
+                menuList = append(menuList, menu)
+            } else if menuList[len(menuList) - 2] == "Unlock Password" {
+                ciphertext, _ := ioutil.ReadFile(fPath)
+                salt, strippedCtext, hash, _ := parseCt(ciphertext)
+                hashedPassphrase := hashKey(tmpPassphrase, string(salt))
+                plaintext := decrypt(strippedCtext, hashedPassphrase)
+                hashPt := sha512.New()
+                hashPt.Write(plaintext)
+                ptHash := hashPt.Sum(nil)
+                if string(hash) == string(ptHash) {
+                    passphrase = tmpPassphrase
+                    fileContents = plaintext
+                    parseFile()
+                    contentString = ""
+                    tmpPassphrase = ""
+                    menu = "Main Menu"
+                    menuList = append(menuList, menu)
+                } else {
+                    contentString = "Incorrect Passphrase/Keyfile " +
+                        "Combination"
+                    tmpPassphrase = ""
+                    omit = true
+                    menuList = menuList[:len(menuList) - 1]
+                    menu = menuList[len(menuList) - 1]
+                }
+            } else {
+                if step[0] {
+                    if passphrase == tmpPassphrase {
+                        contentString = ""
+                        step[0], step[1] = false, true
+                        tmpPassphrase = ""
+                        omit = true
+                        menuList = menuList[:len(menuList) - 1]
+                        menu = menuList[len(menuList) - 1]
+                    } else {
+                        contentString = "Incorrect Passphrase/Keyfile " +
+                            "Combination"
+                        tmpPassphrase = ""
+                        omit = true
+                        menuList = menuList[:len(menuList) - 1]
+                        menu = menuList[len(menuList) - 1]
+                    }
+                } else {
+                    passphrase = tmpPassphrase
+                    writeData()
+                    contentString = "Your Passphrase/Keyfile Was " +
+                        "Successfully Changed!"
+                    tmpPassphrase = ""
+                    menu = "Main Menu"
+                    menuList = append(menuList, menu)
+                }
+            }
+        }
+    }
+}
+
+func addKeyFile(filePath string) ([]byte, error) {
+    if len(filePath) > 1 {
+        if filePath[:2] == "~/" {
+            usr, _ := user.Current()
+            filePath = usr.HomeDir + filePath[1:]
+        }
+    }
+    content, err := ioutil.ReadFile(filePath)
+    if err != nil {
+        return nil, err
+    }
+    return content, nil
 }
 
 func mainSettings() {
@@ -1107,6 +1261,7 @@ func mainOptions(ev termbox.Event) {
             menu = "New"
             menuList = append(menuList, menu)
         } else if ev.Ch == 'p' {
+            contentString = ""
             menu = "Change Passphrase"
             menuList = append(menuList, menu)
         } else if ev.Ch == 'l' {
@@ -1371,7 +1526,9 @@ func newEOptions(ev termbox.Event) {
             } else if step[3] {
                 passLen = 0
                 passLenInt, err := strconv.Atoi(value)
-                if err == nil {
+                if err != nil {
+                    contentExtra = "Password Length Must be an Integer"
+                } else {
                     if passLenInt > 3 && passLenInt < 65536 {
                         contentExtra = ""
                         passLen = passLenInt
@@ -1380,8 +1537,6 @@ func newEOptions(ev termbox.Event) {
                         contentExtra = "Password Length Must be Between 4 " +
                             "and 65536"
                     }
-                } else {
-                    contentExtra = "Password Length Must be an Integer"
                 }
             } else if step[8] {
                 key1 = ""
@@ -1933,13 +2088,13 @@ func editContentOptions(ev termbox.Event) {
 func cPassphraseSettings() {
     ctrlC = true
     termbox.HideCursor()
-    locationTitle = "CHANGE PASSPHRASE"
+    locationTitle = "CHANGE PASSPHRASE/KEYFILE"
     options = "y:YES n:NO"
-    contentString = ""
 }
 
 func cPassphraseOptions(ev termbox.Event) {
     if ev.Ch == 'y' {
+        omit = true
         step[0] = true
         menu = "Passphrase"
         menuList = append(menuList, menu)
@@ -1956,8 +2111,8 @@ func passphraseSettings() {
     }
     ctrlC = true
     passwordInput = true
-    locationTitle = "CHANGE PASSPHRASE"
-    options = "Enter:CONFIRM"
+    locationTitle = "CHANGE PASSPHRASE/KEYFILE"
+    options = "Enter:CONFIRM  Ctrl-T:"
     if step[0] {
         bottomCaption = "Input Passphrase: "
     } else if step[1] {
@@ -1965,6 +2120,12 @@ func passphraseSettings() {
     } else {
         bottomCaption = "Repeat New Password: "
     }
+    if omit {
+        options += "INCLUDE"
+    } else {
+        options += "OMIT"
+    }
+    options += " KEY FILE"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
@@ -1975,16 +2136,30 @@ func passphraseOptions(ev termbox.Event) {
         valueEntered = true
         edit_box.text = make([]byte, 0)
         edit_box.MoveCursorTo(0)
+    } else if ev.Key == termbox.KeyCtrlT {
+        if omit {
+            omit = false
+        } else {
+            omit = true
+        }
     } else {
         textEdit(ev)
     }
     if valueEntered {
         if step[0] {
-            if value == passphrase {
+            if !omit {
                 contentString = ""
-                step[0], step[1] = false, true
+                tmpPassphrase = value
+                menu = "Keyfile"
+                menuList = append(menuList, menu)
             } else {
-                contentString = "Passphrase Incorrect"
+                if value == passphrase {
+                    contentString = ""
+                    step[0], step[1] = false, true
+                } else {
+                    contentString = "Incorrect Passphrase/Keyfile " +
+                        "Combination"
+                }
             }
         } else if step[1] {
             key1 = value
@@ -1992,11 +2167,18 @@ func passphraseOptions(ev termbox.Event) {
             step[1] = false
         } else {
             if value == key1 {
-                passphrase = value
-                writeData()
-                contentString = "Your Passphrase Was Successfully Changed!"
-                menu = "Main Menu"
-                menuList = append(menuList, menu)
+                if !omit {
+                    tmpPassphrase = value
+                    menu = "Keyfile"
+                    menuList = append(menuList, menu)
+                } else {
+                    passphrase = value
+                    writeData()
+                    contentString = "Your Passphrase/Keyfile Was " +
+                        "Successfully Changed!"
+                    menu = "Main Menu"
+                    menuList = append(menuList, menu)
+                }
             } else {
                 contentString = "New Passphrases Do Not Match"
                 step[1] = true
@@ -2366,6 +2548,8 @@ mainloop:
             openPSettings()
         } else if menu == "Unlock Password" {
             unlockPSettings()
+        } else if menu == "Keyfile" {
+            keyfileSettings()
         } else if menu == "Main Menu" {
             mainSettings()
         } else if menu == "Copy" {
@@ -2399,6 +2583,8 @@ mainloop:
                 break mainloop
             case termbox.KeyCtrlC:
                 if ctrlC {
+                    tmpPassphrase = ""
+                    omit = true
                     passChars = make([]bool, 0)
                     newValue = make([]string, 0)
                     passLen = 0
@@ -2411,8 +2597,20 @@ mainloop:
                         contentString = nameGroupsList[entryNumber - 1] +
                             " Was NOT Deleted"
                     }
+                    if menu == "Passphrase" {
+                        contentString = "Your Passphrase/Keyfile Was NOT" +
+                            " Changed!"
+                    }
                     menuList = menuList[:len(menuList) - 1]
                     menu = menuList[len(menuList) - 1]
+                    if menu == "Secure Password" || menu == "Passphrase" {
+                        if menu == "Passphrase" {
+                            contentString = "Your Passphrase/Keyfile Was" +
+                                "NOT Changed!"
+                        }
+                        menuList = menuList[:len(menuList) - 1]
+                        menu = menuList[len(menuList) - 1]
+                    }
                     keyUpPressed = false
                     keyDownPressed = false
                     bottomCaption = ""
@@ -2439,6 +2637,8 @@ mainloop:
                     openPOptions(ev)
                 } else if menu == "Unlock Password" {
                     unlockPOptions(ev)
+                } else if menu == "Keyfile" {
+                    keyfileOptions(ev)
                 } else if menu == "Main Menu" {
                     mainOptions(ev)
                 } else if menu == "Copy" {
