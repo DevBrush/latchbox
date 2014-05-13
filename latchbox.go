@@ -297,7 +297,8 @@ func parseFile() {
         var madeLen int
         if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
             madeLen = 8
-        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 && !err {
+        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 &&
+                !err {
             madeLen = 4
         }
         if madeLen > 0 {
@@ -320,7 +321,8 @@ func parseFile() {
         var editedLen int
         if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
             editedLen = 8
-        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 && !err {
+        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 &&
+                !err {
             editedLen = 4
         }
         if editedLen > 0 {
@@ -962,7 +964,8 @@ func securePOptions(ev termbox.Event) {
                 } else {
                     passphrase = value
                     writeData()
-                    contentString = "Your Password File Was Created Successfully!"
+                    contentString = "Your Password File Was Created" +
+                        "Successfully!"
                     menu = "Main Menu"
                     menuList = append(menuList, menu)
                 }
