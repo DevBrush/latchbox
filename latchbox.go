@@ -25,7 +25,7 @@ import (
 
 const (
     protocolVersion = 2
-    version = "v0.3.1.1"
+    version = "v0.3.1.2"
     title = "Latchbox " + version + " (Esc:QUIT"
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
@@ -2022,7 +2022,7 @@ func editContentOptions(ev termbox.Event) {
             } else if entryData == "Username" {
                 if len(value) < 256 && len(value) > 0 {
                     contentString = "Username Changed"
-                    emails[num] = value
+                    usernames[num] = value
                     menuList = menuList[:len(menuList) - 1]
                     menu = menuList[len(menuList) - 1]
                 } else if len(value) == 0 {
