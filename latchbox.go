@@ -1,3 +1,8 @@
+// Copyright 2014 PariahVi (http://pariahvi.com).
+// LatchBox is licensed under a BSD License.
+// Read LICENSE.txt for more license text.
+
+// A Console Based Password Management Program
 package main
 
 import (
@@ -26,7 +31,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.3.1.3"
+    version = "v0.3.1.4"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -103,48 +108,19 @@ func parseFile() {
     var err bool
     var pointer int
     var packetPointer int
-    var groupPacket []byte
-    var packet []byte
-    var groupPacketLen int
     var hGroupPointer string
-    var packetLen int
-    var hGroupLen int
-    var hGroup string
     if len(fileContents) >= 2 {
         pFileVersion = uint16(getLen(fileContents[pointer: pointer + 2]))
     } else {
         err = true
     }
     pointer += 2
-    if len(fileContents) - pointer >= 4 && !err {
-        groupPacketLen = getLen(fileContents[pointer: pointer + 4])
-    } else {
-        err = true
-    }
-    pointer += 4
-    if len(fileContents) - pointer >= groupPacketLen && !err {
-        groupPacket = fileContents[pointer: pointer + groupPacketLen]
-    } else {
-        err = true
-    }
-    if len(fileContents) - pointer >= len(groupPacket) &&
-           len(groupPacket) > 0 && !err {
-        for packetPointer < len(groupPacket) && !err {
-            if len(groupPacket) >= 2 {
-                hGroupLen = getLen(groupPacket[packetPointer: packetPointer +
-                    2])
-            } else {
-                err = true
-            }
-            packetPointer += 2
-            if hGroupLen <= len(groupPacket) - packetPointer && !err {
-                hGroup = string(groupPacket[
-                    packetPointer: packetPointer + hGroupLen])
-            } else {
-                err = true
-            }
-            packetPointer += hGroupLen
-            if len(groupPacket) - packetPointer >= 2 && !err {
+    groupPacketLen, groupPacket := parseInfo(fileContents, 4, &pointer, &err)
+    if len(fileContents) - pointer + groupPacketLen >= groupPacketLen &&
+           groupPacketLen > 0 && !err {
+        for packetPointer < groupPacketLen && !err {
+            _, hGroup := parseInfo(groupPacket, 2, &packetPointer, &err)
+            if len(groupPacket) >= 2 + packetPointer && !err {
                 hGroupPointer = string(groupPacket[
                     packetPointer: packetPointer + 2])
             } else {
@@ -152,127 +128,45 @@ func parseFile() {
             }
             packetPointer += 2
             if !err {
-                groupDict[hGroup] = hGroupPointer
+                groupDict[string(hGroup)] = hGroupPointer
             }
         }
-        pointer += groupPacketLen
     } else if len(groupPacket) != 0 {
         err = true
     }
     for pointer < len(fileContents) && !err {
-        if len(fileContents) - pointer >= 3 {
-            packetLen = getLen(fileContents[pointer: pointer + 3])
+        _, packet := parseInfo(fileContents, 3, &pointer, &err)
+        packetPointer = 0
+        nameLen, name := parseInfo(packet, 1, &packetPointer, &err)
+        if nameLen > 0 && !inString(string(name), "/") && !err {
+            names = append(names, string(name))
         } else {
             err = true
         }
-        pointer += 3
-        if len(fileContents) - pointer >= packetLen && !err{
-            packet = fileContents[pointer: pointer + packetLen]
-        }
-        if len(packet) != packetLen && !err {
-            err = true
-        }
-        var packetPointer int
-        var nameLen int
-        if len(packet) - packetPointer >= 1 && !err {
-            nameLen = getLen(packet[packetPointer: packetPointer + 1])
+        _, username := parseInfo(packet, 1, &packetPointer, &err)
+        if len(packet) > packetPointer && !err {
+            usernames = append(usernames, string(username))
         } else {
             err = true
         }
-        packetPointer += 1
-        var name string
-        if len(packet) >= packetPointer + nameLen && !err {
-            name = string(packet[packetPointer: packetPointer + nameLen])
-            if inString(name, "/") {
-                err = true
-            }
+        _, password := parseInfo(packet, 2, &packetPointer, &err)
+        if len(packet) > packetPointer && !err {
+            passwords = append(passwords, string(password))
         } else {
             err = true
         }
-        if len(name) > 0 && !err {
-            names = append(names, name)
+        _, email := parseInfo(packet, 1, &packetPointer, &err)
+        if len(packet) > packetPointer && !err {
+            emails = append(emails, string(email))
         } else {
             err = true
         }
-        packetPointer += nameLen
-        var usernameLen int
-        if len(packet) - packetPointer >= 1 && !err {
-            usernameLen = getLen(packet[packetPointer: packetPointer + 1])
+        _, url := parseInfo(packet, 1, &packetPointer, &err)
+        if len(packet) > packetPointer && !err {
+            urls = append(urls, string(url))
         } else {
             err = true
         }
-        packetPointer += 1
-        var username string
-        if len(packet) >= packetPointer + usernameLen && !err {
-            username = string(packet[packetPointer: packetPointer +
-                usernameLen])
-        } else {
-            err = true
-        }
-        if len(packet) > packetPointer + usernameLen && !err {
-            usernames = append(usernames, username)
-        } else {
-            err = true
-        }
-        packetPointer += usernameLen
-        var passwordLen int
-        if len(packet) - packetPointer >= 2 && !err {
-            passwordLen = getLen(packet[packetPointer: packetPointer + 2])
-        } else {
-            err = true
-        }
-        packetPointer += 2
-        var password string
-        if len(packet) >= packetPointer + passwordLen && !err {
-            password = string(packet[packetPointer: packetPointer +
-                passwordLen])
-        } else {
-            err = true
-        }
-        if len(packet) > packetPointer + passwordLen && !err {
-            passwords = append(passwords, password)
-        } else {
-            err = true
-        }
-        packetPointer += passwordLen
-        var emailLen int
-        if len(packet) - packetPointer >= 1 && !err {
-            emailLen = getLen(packet[packetPointer: packetPointer + 1])
-        } else {
-            err = true
-        }
-        packetPointer += 1
-        var email string
-        if len(packet) >= packetPointer + emailLen && !err {
-            email = string(packet[packetPointer: packetPointer + emailLen])
-        } else {
-            err = true
-        }
-        if len(packet) > packetPointer + emailLen && !err {
-            emails = append(emails, email)
-        } else {
-            err = true
-        }
-        packetPointer += emailLen
-        var urlLen int
-        if len(packet) - packetPointer >= 1 && !err {
-            urlLen = getLen(packet[packetPointer: packetPointer + 1])
-        } else {
-            err = true
-        }
-        packetPointer += 1
-        var url string
-        if len(packet) >= packetPointer + urlLen && !err {
-            url = string(packet[packetPointer: packetPointer + urlLen])
-        } else {
-            err = true
-        }
-        if len(packet) > packetPointer + urlLen && !err {
-            urls = append(urls, url)
-        } else {
-            err = true
-        }
-        packetPointer += urlLen
         var group string
         if len(packet) - packetPointer >= 2 && !err {
             for path, point := range groupDict {
@@ -294,58 +188,12 @@ func parseFile() {
         } else {
             err = true
         }
+        packetPointer += 2
         if pFileVersion == 1 {
             packetPointer += 1
         }
-        packetPointer += 2
-        var made string
-        var madeLen int
-        if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
-            madeLen = 8
-        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 &&
-                !err {
-            madeLen = 4
-        }
-        if madeLen > 0 {
-            made = string(packet[packetPointer: packetPointer + madeLen])
-            var cInt float64
-            for x := 0; x < len(made); x++ {
-                cInt += float64(made[x]) * math.Pow(256, float64(madeLen - 1 -
-                    x))
-            }
-            made = time.Unix(int64(cInt), 0).Format(timeLayout)
-            created = append(created, made)
-        } else {
-            err = true
-        }
-        if pFileVersion != 1 {
-            packetPointer += 4
-        }
-        packetPointer += 4
-        var edited string
-        var editedLen int
-        if pFileVersion == 2 && len(packet) - packetPointer >= 8 && !err {
-            editedLen = 8
-        } else if pFileVersion == 1 && len(packet) - packetPointer >= 4 &&
-                !err {
-            editedLen = 4
-        }
-        if editedLen > 0 {
-            edited = string(packet[packetPointer: packetPointer + editedLen])
-            var mInt float64
-            for x := 0; x < len(edited); x++ {
-                mInt += float64(edited[x]) * math.Pow(256, float64(editedLen -
-                    1 - x))
-            }
-            edited = time.Unix(int64(mInt), 0).Format(timeLayout)
-            modified = append(modified, edited)
-        } else {
-            err = true
-        }
-        if pFileVersion != 1 {
-            packetPointer += 4
-        }
-        packetPointer += 4
+        getTime(packet, &created, &packetPointer, pFileVersion, &err)
+        getTime(packet, &modified, &packetPointer, pFileVersion, &err)
         var comment string
         if len(packet) - packetPointer >= 0 && !err {
             comment = string(packet[packetPointer:])
@@ -353,12 +201,61 @@ func parseFile() {
         } else {
             err = true
         }
-        pointer += packetLen
     }
     if err {
         lock()
         contentString = "Corrupted Password File"
     }
+}
+
+// Returns the length of the next packet section along with the content of
+// the packet section.
+func parseInfo(packet []byte, byteLen int, pointer *int, err *bool) (
+        packetLen int, content []byte) {
+    var pLen int
+    var pContent []byte
+    if len(packet) - *pointer >= byteLen && !*err {
+        pLen = getLen(packet[*pointer: *pointer + byteLen])
+    } else {
+        *err = true
+    }
+    *pointer += byteLen
+    if len(packet) >= *pointer + pLen && !*err {
+        pContent = packet[*pointer: *pointer + pLen]
+    } else {
+        *err = true
+    }
+    *pointer += pLen
+    return pLen, pContent
+}
+
+// Get YYYY-MM-DD hh:mm:ss timestamp out of 8 bytes (protocol version > 1)
+// or 4 bytes (protocol version 1).
+func getTime(packet []byte, entryList *[]string, pointer *int,
+        pFileVersion uint16, err *bool) {
+    var timeLen int
+    if pFileVersion != 1 && len(packet) - *pointer >= 8 && !*err {
+        timeLen = 8
+    } else if pFileVersion == 1 && len(packet) - *pointer >= 4 &&
+            !*err {
+        timeLen = 4
+    }
+    if timeLen > 0 {
+        timeByteString := string(packet[*pointer: *pointer + timeLen])
+        var cInt float64
+        for x := 0; x < len(timeByteString); x++ {
+            cInt += float64(timeByteString[x]) * math.Pow(256, float64(timeLen -
+                 1 - x))
+        }
+        timestamp := time.Unix(int64(cInt), 0).Format(timeLayout)
+        *entryList = append(*entryList, timestamp)
+    } else {
+        *err = true
+    }
+    if pFileVersion != 1 {
+        *pointer += 4
+    }
+    *pointer += 4
 }
 
 // Organize data into password file protocol, then encrypt the
@@ -461,7 +358,7 @@ func strLenAppend(s []byte, byteNum int) []byte {
     return byteString
 }
 
-// Converts i to to a byte slice of byteNum length. 
+// Converts i to to a byte slice of byteNum length.
 func intByte(i int64, byteNum int) []byte {
     var byteList []byte
     y := i
