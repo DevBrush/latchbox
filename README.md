@@ -1,7 +1,5 @@
 # LatchBox
 
-######v0.3.1.2
-
 **_LatchBox is created by PariahVi ([http://pariahvi.com](http://pariahvi.com)) and is licensed under a BSD License. Read LICENSE.txt for more license text._**
 
 _A Console Based Password Management Program_
