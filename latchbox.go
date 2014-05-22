@@ -6,7 +6,7 @@
 package main
 
 import (
-    "bitbucket.org/PariahVi/clipboard"
+    "github.com/PariahVi/clipboard"
     "github.com/jameskeane/bcrypt"
     "github.com/nsf/termbox-go"
     "github.com/pmylund/sortutil"
@@ -31,7 +31,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.3.1.4"
+    version = "v0.3.1.5"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
