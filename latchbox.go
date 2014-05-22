@@ -24,17 +24,20 @@ import (
 )
 
 const (
+    // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.3.1.2"
+    version = "v0.3.1.3"
     title = "Latchbox " + version + " (Esc:QUIT"
+    // uppercase, lowercase, digits and punctuation are used to generate
+    // random passwords.
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
     digits = "1234567890"
     punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+    // YYYY-MM-DD hh:mm:ss 24-hour time (computer's localtime)
     timeLayout = "2006-01-02 15:04:05"
+    // YYYYMMDDhhmmss 24-hour time (computer's localtime)
     backupLayout = "20060102150405"
-    preferred_horizontal_threshold = 0
-    tabstop_length = 8
 )
 
 var (
@@ -94,6 +97,8 @@ var (
     omit bool
 )
 
+// Parses the decrypted password file and sorts the information in
+// accordance to the protocol for use with the program.
 func parseFile() {
     var err bool
     var pointer int
@@ -356,6 +361,9 @@ func parseFile() {
     }
 }
 
+// Organize data into password file protocol, then encrypt the
+// password file and write to file.  If first time writing and backups
+// allowed, make a backup.
 func writeData() {
     groupMap()
     var dataList [][]byte
@@ -383,7 +391,7 @@ func writeData() {
         data = append(data, dataList[x]...)
     }
     data = append(groupHeader(), data...)
-    data = append(intByte(protocolVersion, 2), data...)
+    data = append(intByte(int64(protocolVersion), 2), data...)
     salt, _ := bcrypt.Salt()
     key := hashKey(passphrase, salt)
     hashPt := sha512.New()
@@ -398,12 +406,14 @@ func writeData() {
     ioutil.WriteFile(fPath, dataEncrypt, 0644)
 }
 
-func timeToUnix(value string) int {
+// Convert YYYY-MM-DD hh:mm:ss timestamp to local Unix time.
+func timeToUnix(value string) int64 {
     local, _ := time.LoadLocation("Local")
     toTime, _ := time.ParseInLocation(timeLayout, value, local)
-    return int(toTime.Unix())
+    return toTime.Unix()
 }
 
+// Make map of [groupName]groupPointer (group pointer can be up to 65535).
 func groupMap() {
     i := 1
     groupDict = make(map[string]string)
@@ -416,12 +426,13 @@ func groupMap() {
             }
         }
         if !inGroupDict {
-            groupDict[group] = string(intByte(i, 2))
+            groupDict[group] = string(intByte(int64(i), 2))
             i++
         }
     }
 }
 
+// Returns byte slice of protocol for groups and group pointers.
 func groupHeader() []byte {
     var groupData []byte
     for x := range groupDict {
@@ -432,6 +443,8 @@ func groupHeader() []byte {
     return groupData
 }
 
+// Returns byteNum bytes that signify the length of s and appends s
+// to the bytes.
 func strLenAppend(s []byte, byteNum int) []byte {
     var byteList []byte
     y := len(s)
@@ -448,14 +461,15 @@ func strLenAppend(s []byte, byteNum int) []byte {
     return byteString
 }
 
-func intByte(i int, byteNum int) []byte {
+// Converts i to to a byte slice of byteNum length. 
+func intByte(i int64, byteNum int) []byte {
     var byteList []byte
     y := i
     var byteString []byte
     for x := byteNum - 1; x > -1; x-- {
-        z := y / int(math.Pow(256, float64(x)))
+        z := y / int64(math.Pow(256, float64(x)))
         byteList = append(byteList, uint8(z))
-        y -= z * int(math.Pow(256, float64(x)))
+        y -= z * int64(math.Pow(256, float64(x)))
     }
     for x := range byteList {
         byteString = append(byteString, byteList[x])
@@ -463,6 +477,7 @@ func intByte(i int, byteNum int) []byte {
     return byteString
 }
 
+// Checks if the string char is in the string input.
 func inString(input, char string) bool {
     for i := 0; i < len(input); i++ {
         if input[i] == char[0] {
@@ -480,6 +495,7 @@ func inString(input, char string) bool {
     return false
 }
 
+// Converts byteString to an int
 func getLen(byteString []byte) int {
     solution := float64(0)
     a := len(byteString)
@@ -491,6 +507,8 @@ func getLen(byteString []byte) int {
     return int(solution)
 }
 
+// Returns a case insensitive sorted string slice of the groups
+// concatenated with the names.
 func nameGroups() []string {
     var nameGroupsList []string
     for i := 0; i < len(names); i++ {
@@ -504,6 +522,7 @@ func nameGroups() []string {
     return nameGroupsList
 }
 
+// Case insentitive sorts the string slice list.
 func ciSort(list []string) []string {
     var nameGroupsList []string
     nameGroupsList = append(nameGroupsList, list...)
@@ -524,6 +543,8 @@ func ciSort(list []string) []string {
     return list
 }
 
+// Resets variables and brings the user back to the Welcome menu to either
+// make a NEW password file or OPEN an old one.
 func lock() {
     passChars = make([]bool, 0)
     newValue = make([]string, 0)
@@ -557,6 +578,9 @@ func lock() {
     orderList = make([]int, 0)
 }
 
+// Uses bcrypt with a cost value of 12 and salt to hash passValue, then
+// uses SHA256 to hash the value that was hashed with bcrypt to create a
+// 32-bit byte slice to encrypt the password file using AES256.
 func hashKey(passValue, salt string) []byte {
     hashed, _ := bcrypt.Hash(passValue, salt)
     hash := sha256.New()
@@ -564,7 +588,8 @@ func hashKey(passValue, salt string) []byte {
     return hash.Sum(nil)
 }
 
-func encrypt(message []byte, key []byte) []byte {
+// Pads the byte slice message and encrypts it using the byte string key and AES256 CBC.
+func encrypt(message, key []byte) []byte {
     x := (aes.BlockSize - len(message) % aes.BlockSize)
     if x == 0 {
         x = 16
@@ -588,6 +613,7 @@ func encrypt(message []byte, key []byte) []byte {
     return ciphertext
 }
 
+// Decrypts the byte slice ciphertext and unpads it.
 func decrypt(ciphertext, key []byte) []byte {
     block, err := aes.NewCipher(key)
     if err != nil {
@@ -608,6 +634,11 @@ func decrypt(ciphertext, key []byte) []byte {
     return plaintext
 }
 
+// Checks to see if the encrypted password file (fc) looks legitimate for
+// length and the salt, then parses out the salt, ciphertext (ct), and
+// the sha512 hash of the decrypted ciphertext, which is used to test
+// if the decryption key was correct while decrypting the encrypted
+// password file.  If anything isn't as expected, an error is returned.
 func parseCt(fc []byte) (salt []byte, ct []byte, hash []byte, err error) {
     if len(fc) < 125 {
         return nil, nil, nil, errors.New("Ciphertext length too small")
@@ -619,6 +650,9 @@ func parseCt(fc []byte) (salt []byte, ct []byte, hash []byte, err error) {
     return fc[:29], fc[29:len(fc) - 64], fc[len(fc) - 64:], nil
 }
 
+// Draws the termbox instance along with the content and allows for
+// resizing and shows if Ctrl-C can be used or if scrolling is allowed
+// using the up and down key.
 func draw() {
     w, h = termbox.Size()
     termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -724,6 +758,8 @@ func draw() {
     termbox.Flush()
 }
 
+// Returns a string slice with each value being a single line to draw.
+// Uses w to figure out how to split up valueString.
 func multiLine(valueString string, w int) []string {
     var counter int
     var valueBuffer string
@@ -780,6 +816,8 @@ func multiLine(valueString string, w int) []string {
     return valueSlice
 }
 
+// Parses the config file to figure out the default password file location
+// and if backups are allowed.
 func configParse() {
     configFile := configDir + "config.txt"
     content, err := ioutil.ReadFile(configFile)
@@ -815,6 +853,7 @@ func configParse() {
     }
 }
 
+// WELCOME TO LATCHBOX menu
 func welcomeSettings() {
     ctrlC = false
     termbox.HideCursor()
@@ -835,6 +874,7 @@ func welcomeOptions(ev termbox.Event) {
     }
 }
 
+// NEW PASSWORD FILE
 func newPSettings() {
     ctrlC = true
     passwordInput = false
@@ -915,6 +955,7 @@ func newPOptions(ev termbox.Event) {
     }
 }
 
+// SECURE NEW PASSWORD FILE
 func securePSettings() {
     ctrlC = true
     passwordInput = true
@@ -978,6 +1019,7 @@ func securePOptions(ev termbox.Event) {
     }
 }
 
+// OPEN PASSWORD FILE
 func openPSettings() {
     contentString = ""
     ctrlC = true
@@ -1060,6 +1102,7 @@ func openPOptions(ev termbox.Event) {
     }
 }
 
+// UNLOCK PASSWORD FILE
 func unlockPSettings() {
     ctrlC = true
     passwordInput = true
@@ -1118,21 +1161,18 @@ func unlockPOptions(ev termbox.Event) {
     }
 }
 
+// If INCLUDE KEYFILE was selected.
 func keyfileSettings() {
     ctrlC = true
     passwordInput = false
     bottomCaption = "Path to Keyfile: "
-    if menuList[len(menuList) - 1] == "Secure Password" {
-        locationTitle = "SECURE NEW PASSWORD FILE"
-    } else if menuList[len(menuList) - 1] == "Unlock Password" {
-        locationTitle = "UNLOCK PASSWORD FILE"
-    } else {
-        locationTitle = "CHANGE PASSPHRASE/KEYFILE"
-    }
     options = "Enter:CONFIRM"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
+// Allows keyfile to be included.  If included, the file's contents will
+// be hashed with SHA512 and appended to the passphrase before hashing
+// the key (passphrase) for encryption/decryption of the password file.
 func keyfileOptions(ev termbox.Event) {
     var valueEntered bool
     if ev.Key == termbox.KeyEnter {
@@ -1214,6 +1254,8 @@ func keyfileOptions(ev termbox.Event) {
     }
 }
 
+// Get Content of filePath for the keyFile to help decrypt the password
+// file.
 func addKeyFile(filePath string) ([]byte, error) {
     if len(filePath) > 1 {
         if filePath[:2] == "~/" {
@@ -1228,6 +1270,7 @@ func addKeyFile(filePath string) ([]byte, error) {
     return content, nil
 }
 
+// MAIN MENU
 func mainSettings() {
     ctrlC = false
     termbox.HideCursor()
@@ -1273,6 +1316,7 @@ func mainOptions(ev termbox.Event) {
     }
 }
 
+// COPY ENTRY (first menu)
 func copyESettings() {
     ctrlC = true
     passwordInput = false
@@ -1307,6 +1351,7 @@ func copyEOptions(ev termbox.Event) {
     }
 }
 
+// COPY ENTRY (second menu)
 func copyContentSettings() {
     ctrlC = true
     termbox.HideCursor()
@@ -1315,21 +1360,10 @@ func copyContentSettings() {
         contentString = "Choose What You Want to Copy"
         options = "u:USERNAME  p:PASSWORD  e:EMAIL  w:URL"
     } else {
-        var data string
         contentString = entryData  + " Copied.  Press Ctrl-C to Clear the " +
             "Clipboard"
         options = "Ctrl-C:CLEAR CLIPBOARD/BACK"
-        if entryData == "Username" {
-            data = usernames[orderList[entryNumber - 1]]
-        } else if entryData == "Password" {
-            data = passwords[orderList[entryNumber - 1]]
-        } else if entryData == "Email" {
-            data = emails[orderList[entryNumber - 1]]
-        } else if entryData == "URL" {
-            data = urls[orderList[entryNumber - 1]]
-        }
         contentCopied = true
-        clipboard.WriteAll(data)
     }
 }
 
@@ -1346,9 +1380,28 @@ func copyContentOptions(ev termbox.Event) {
                 entryData = "URL"
             }
         }
+        if entryData != "" {
+            var data string
+            if entryData == "Username" {
+                data = usernames[orderList[entryNumber - 1]]
+            } else if entryData == "Password" {
+                data = passwords[orderList[entryNumber - 1]]
+            } else if entryData == "Email" {
+                data = emails[orderList[entryNumber - 1]]
+            } else if entryData == "URL" {
+                data = urls[orderList[entryNumber - 1]]
+            }
+            err := clipboard.WriteAll(data)
+            if err != nil {
+                menuList = menuList[:len(menuList) - 2]
+                menu = menuList[len(menuList) - 1]
+                contentString = "Unable to Copy Content to Clipboard"
+            }
+        }
     }
 }
 
+// VIEW ENTRY (first menu)
 func viewESettings() {
     ctrlC = true
     passwordInput = false
@@ -1383,6 +1436,7 @@ func viewEOptions(ev termbox.Event) {
     }
 }
 
+// VIEW ENTRY (second menu)
 func viewContentSettings() {
     ctrlC = true
     termbox.HideCursor()
@@ -1428,6 +1482,7 @@ func viewContentOptions(ev termbox.Event) {
     }
 }
 
+// NEW ENTRY
 func newESettings() {
     ctrlC = true
     passwordInput = false
@@ -1677,6 +1732,7 @@ func newEOptions(ev termbox.Event) {
     }
 }
 
+// DELETE ENTRY (first menu)
 func deleteESettings() {
     ctrlC = true
     passwordInput = false
@@ -1710,6 +1766,7 @@ func deleteEOptions(ev termbox.Event) {
     }
 }
 
+// DELETE ENTRY (second menu)
 func deleteContentSettings() {
     ctrlC = true
     termbox.HideCursor()
@@ -1752,6 +1809,7 @@ func deleteContentOptions(ev termbox.Event) {
     }
 }
 
+// EDIT ENTRY (first menu)
 func editESettings() {
     ctrlC = true
     passwordInput = false
@@ -1785,6 +1843,7 @@ func editEOptions(ev termbox.Event) {
     }
 }
 
+// EDIT ENTRY (second menu)
 func editContentSettings() {
     ctrlC = true
     termbox.HideCursor()
@@ -2088,6 +2147,7 @@ func editContentOptions(ev termbox.Event) {
     }
 }
 
+// CHANGE PASSPHRASE/KEYFILE (first menu)
 func cPassphraseSettings() {
     ctrlC = true
     termbox.HideCursor()
@@ -2107,6 +2167,7 @@ func cPassphraseOptions(ev termbox.Event) {
     }
 }
 
+// CHANGE PASSPHRASE/KEYFILE (second menu)
 func passphraseSettings() {
     if menuList[len(menuList) - 2] == "Change Passphrase" {
         menuList = append(menuList[:len(menuList) - 2],
@@ -2114,7 +2175,6 @@ func passphraseSettings() {
     }
     ctrlC = true
     passwordInput = true
-    locationTitle = "CHANGE PASSPHRASE/KEYFILE"
     options = "Enter:CONFIRM  Ctrl-T:"
     if step[0] {
         bottomCaption = "Input Passphrase: "
@@ -2191,6 +2251,9 @@ func passphraseOptions(ev termbox.Event) {
     }
 }
 
+// Creates a string with the group name combinations along with a number
+// in square brackets ahead of it to indicate that group name combination
+// option for selecting the group name entry to use.
 func displayNameGroups() string {
     content := ""
     nameGroupsList := nameGroups()
@@ -2200,6 +2263,12 @@ func displayNameGroups() string {
     return content[:len(content) - 1]
 }
 
+// generate a random password with criteria ([uppercase, lowercase, digits
+// punctuation] (ulds), and lenth (pLen)).  Needs at least 4 for the
+// generated password length.  If NO was used for all criteria in ulds, a
+// password will be generated with only lowercase characters.  The password
+// is guaranteed to have at least one of every type of character allowed
+// under ulds.
 func genPass (pLen uint16, ulds []bool) string {
     var password []byte
     var passwordString string
@@ -2247,13 +2316,14 @@ func genPass (pLen uint16, ulds []bool) string {
     return string(password)
 }
 
+// Get a random int between 0 and number.
 func getRandNumber(number int64) int {
     randNumber, _ := rand.Int(rand.Reader, big.NewInt(number))
     randString := randNumber.String()
     randInt, _ := strconv.Atoi(randString)
     return randInt
 }
-
+// Return true if there are duplicate values in nameGroupList.
 func duplicateNameGroups(nameGroupsList []string) bool {
     dup := make(map[string]bool)
     for _, x := range nameGroupsList {
@@ -2269,25 +2339,18 @@ func duplicateNameGroups(nameGroupsList []string) bool {
 func fill(x, y, w, h int, cell termbox.Cell) {
     for ly := 0; ly < h; ly++ {
         for lx := 0; lx < w; lx++ {
-            termbox.SetCell(x+lx, y+ly, cell.Ch, cell.Fg, cell.Bg)
+            termbox.SetCell(x + lx, y + ly, cell.Ch, cell.Fg, cell.Bg)
         }
     }
-}
-
-func rune_advance_len(r rune, pos int) int {
-    if r == '\t' {
-        return tabstop_length - pos%tabstop_length
-    }
-    return 1
 }
 
 func voffset_coffset(text []byte, boffset int) (voffset, coffset int) {
     text = text[:boffset]
     for len(text) > 0 {
-        r, size := utf8.DecodeRune(text)
+        _, size := utf8.DecodeRune(text)
         text = text[size:]
         coffset += 1
-        voffset += rune_advance_len(r, voffset)
+        voffset += 1
     }
     return
 }
@@ -2304,7 +2367,7 @@ func byte_slice_grow(s []byte, desired_cap int) []byte {
 func byte_slice_remove(text []byte, from, to int) []byte {
     size := to - from
     copy(text[from:], text[to:])
-    text = text[:len(text)-size]
+    text = text[:len(text) - size]
     return text
 }
 
@@ -2327,11 +2390,10 @@ type EditBox struct {
 
 func (eb *EditBox) Layout(x, y, w, h int) {
     eb.AdjustVOffset(w)
-
     const coldef = termbox.ColorDefault
     fill(x, y, w, h, termbox.Cell{Ch: ' '})
-
     t := eb.text
+    // Input * characters if passwordInput is true
     if passwordInput {
         t = make([]byte, 0)
         for i := 0; i < len(eb.text); i++ {
@@ -2339,61 +2401,33 @@ func (eb *EditBox) Layout(x, y, w, h int) {
         }
     }
     lx := 0
-    tabstop := 0
     for {
         rx := lx - eb.line_voffset
         if len(t) == 0 {
             break
         }
-
-        if lx == tabstop {
-            tabstop += tabstop_length
-        }
-
         if rx >= w {
             break
         }
-
         r, size := utf8.DecodeRune(t)
-        if r == '\t' {
-            for ; lx < tabstop; lx++ {
-                rx = lx - eb.line_voffset
-                if rx >= w {
-                    goto next
-                }
-
-                if rx >= 0 {
-                    termbox.SetCell(x+rx, y, ' ', coldef, coldef)
-                }
-            }
-        } else {
-            if rx >= 0 {
-                termbox.SetCell(x+rx, y, r, coldef, coldef)
-            }
-            lx += 1
+        if rx >= 0 {
+            termbox.SetCell(x + rx, y, r, coldef, coldef)
         }
-    next:
+        lx += 1
         t = t[size:]
     }
 }
 
 func (eb *EditBox) AdjustVOffset(width int) {
-    ht := preferred_horizontal_threshold
-    max_h_threshold := (width - 1) / 2
-    if ht > max_h_threshold {
-        ht = max_h_threshold
-    }
-
     threshold := width - 1
     if eb.line_voffset != 0 {
-        threshold = width - ht
+        threshold = width
     }
-    if eb.cursor_voffset-eb.line_voffset >= threshold {
-        eb.line_voffset = eb.cursor_voffset + (ht - width + 1)
+    if eb.cursor_voffset - eb.line_voffset >= threshold {
+        eb.line_voffset = eb.cursor_voffset - width + 1
     }
-
-    if eb.line_voffset != 0 && eb.cursor_voffset-eb.line_voffset < ht {
-        eb.line_voffset = eb.cursor_voffset - ht
+    if eb.line_voffset != 0 && eb.cursor_voffset - eb.line_voffset < 0 {
+        eb.line_voffset = eb.cursor_voffset
         if eb.line_voffset < 0 {
             eb.line_voffset = 0
         }
@@ -2460,6 +2494,7 @@ func (eb *EditBox) CursorX() int {
     return eb.cursor_voffset - eb.line_voffset
 }
 
+// Rules for the text input field when it is active.
 func textEdit(ev termbox.Event) {
     if ev.Key == termbox.KeyArrowLeft {
         edit_box.MoveCursorOneRuneBackward()
@@ -2477,6 +2512,9 @@ func textEdit(ev termbox.Event) {
     }
 }
 
+// Makes latchbox directory if one doesn't exist and creates config.txt
+// if it doesn't exist.  If config exists, but not config.txt, config
+// will be renamed to config.txt.
 func makeConfig() {
     usr, _ := user.Current()
     if runtime.GOOS == "windows" {
@@ -2503,6 +2541,10 @@ func makeConfig() {
     }
 }
 
+// Makes backup files (and a backup directory inside of the latchbox
+// directory if it doesn't exist) and makes a copy of the password file
+// as it was when it was opened on the first time it is saved after
+// opening it.
 func doBackup() {
     if !backupSaved {
         if backup && len(backupContents) > 0 {
@@ -2525,6 +2567,7 @@ func doBackup() {
 }
 
 func main() {
+    // If config file doesn't exist, make one
     makeConfig()
     configParse()
     err := termbox.Init()
@@ -2538,9 +2581,10 @@ func main() {
             event_queue <- termbox.PollEvent()
         }
     }()
-mainloop:
+loop:
     for {
         value = ""
+        // Used for drawing menus.
         if menu == "Welcome" {
             welcomeSettings()
         } else if menu == "New Password" {
@@ -2582,8 +2626,12 @@ mainloop:
         switch ev := termbox.PollEvent(); ev.Type {
         case termbox.EventKey:
             switch ev.Key {
+            // If Esc key is pressed, quit program.
             case termbox.KeyEsc:
-                break mainloop
+                break loop
+            // If Ctrl-C is pressed when allowed, go back one menu and
+            // reset things and possibly add contentString messages for
+            // the main body of the termbox instance.
             case termbox.KeyCtrlC:
                 if ctrlC {
                     tmpPassphrase = ""
@@ -2614,8 +2662,6 @@ mainloop:
                         menuList = menuList[:len(menuList) - 1]
                         menu = menuList[len(menuList) - 1]
                     }
-                    keyUpPressed = false
-                    keyDownPressed = false
                     bottomCaption = ""
                     contentExtra = ""
                     key1 = ""
@@ -2625,11 +2671,14 @@ mainloop:
                     edit_box.cursor_voffset = len(bottomCaption)
                     edit_box.cursor_boffset = len(bottomCaption)
                 }
+            // If up or down keys pressed, make the values keyUpPresed or
+            // keyDownPressed true for processing in the drawing phase.
             case termbox.KeyArrowUp:
                 keyUpPressed = true
             case termbox.KeyArrowDown:
                 keyDownPressed = true
             default:
+                // Used for actions of when keys are pressed in menus.
                 if menu == "Welcome" {
                     welcomeOptions(ev)
                 } else if menu == "New Password" {
@@ -2671,6 +2720,8 @@ mainloop:
         }
         draw()
     }
+    // If something was copied in the Copy menu and Esc is pressed, clear
+    // the clipboard for security.
     if contentCopied {
         clipboard.WriteAll("")
     }
