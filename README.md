@@ -22,7 +22,6 @@ _A Console Based Password Management Program_
 * BSD
 * GNU/Linux
 * OSX (need someone to test)
-* Windows (needs some bug fixing, but it works)
 
 ####Protocol:
 
