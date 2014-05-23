@@ -31,7 +31,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.3.1.5"
+    version = "v0.3.1.6"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -1389,7 +1389,7 @@ func newESettings() {
         contentString = "Input New Name (Required)"
         bottomCaption = "Input New Name: "
     } else if step[1] {
-        contentString = "Input New Username (Required)"
+        contentString = "Input New Username"
         bottomCaption = "Input New Username: "
     } else if step[2] {
         contentString = "Generate Password?"
@@ -1469,12 +1469,10 @@ func newEOptions(ev termbox.Event) {
                     contentExtra = "Name Too Long"
                 }
             } else if step[1] {
-                if len(value) < 256 && len(value) > 0 {
+                if len(value) < 256 {
                     contentExtra = ""
                     newValue = append(newValue, value)
                     step[1], step[2] = false, true
-                } else if len(value) == 0 {
-                    contentExtra = "Username Required"
                 } else {
                     contentExtra = "Username Too Long"
                 }
@@ -1761,7 +1759,7 @@ func editContentSettings() {
             contentString = "Input New Name (Required)"
             bottomCaption = "Input New Name: "
         } else if entryData == "Username" {
-            contentString = "Input New Username (Required)"
+            contentString = "Input New Username"
             bottomCaption = "Input New Username: "
         } else if entryData == "Password" {
             passwordInput = true
@@ -1976,13 +1974,11 @@ func editContentOptions(ev termbox.Event) {
                     contentExtra = "Invalid Character \"/\""
                 }
             } else if entryData == "Username" {
-                if len(value) < 256 && len(value) > 0 {
+                if len(value) < 256 {
                     contentString = "Username Changed"
                     usernames[num] = value
                     menuList = menuList[:len(menuList) - 1]
                     menu = menuList[len(menuList) - 1]
-                } else if len(value) == 0 {
-                    contentExtra = "Username Required"
                 } else {
                     contentExtra = "Username Too Long"
                 }
@@ -2409,29 +2405,25 @@ func textEdit(ev termbox.Event) {
     }
 }
 
-// Makes latchbox directory if one doesn't exist and creates config.txt
-// if it doesn't exist.  If config exists, but not config.txt, config
-// will be renamed to config.txt.
+// Makes latchbox directory if one doesn't exist and creates config
+// if it doesn't exist.  If config.txt exists, but not config, config.txt
+// will be renamed to config.
 func makeConfig() {
     usr, _ := user.Current()
-    if runtime.GOOS == "windows" {
-        configDir = usr.HomeDir + "\\AppData\\Local\\latchbox\\"
-    } else {
-        configDir = usr.HomeDir + "/.latchbox/"
-    }
+    configDir = usr.HomeDir + "/.latchbox/"
     configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
         configDir + "passwords.lbp\""
     if _, err := os.Stat(configDir); err != nil {
         os.MkdirAll(configDir, 0755)
-        ioutil.WriteFile(configDir + "config.txt", []byte(configContent), 0644)
+        ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
     } else {
-        content, err := ioutil.ReadFile(configDir + "config.txt")
+        content, err := ioutil.ReadFile(configDir + "config")
         if err != nil || len(content) == 0 {
-            content, err := ioutil.ReadFile(configDir + "config")
+            content, err := ioutil.ReadFile(configDir + "config.txt")
             if err == nil && len(content) != 0 {
-                os.Rename(configDir + "config", configDir + "config.txt")
+                os.Rename(configDir + "config.txt", configDir + "config")
             } else {
-                ioutil.WriteFile(configDir + "config.txt",
+                ioutil.WriteFile(configDir + "config",
                     []byte(configContent), 0644)
             }
         }
@@ -2464,6 +2456,10 @@ func doBackup() {
 }
 
 func main() {
+    // Check if BSD, GNU/Linux or Mac OSX.
+    if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+        panic("Unsupported Operating System")
+    }
     // If config file doesn't exist, make one
     makeConfig()
     configParse()
