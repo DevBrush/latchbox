@@ -32,7 +32,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.4.0.0"
+    version = "v0.4.0.1"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -393,7 +393,7 @@ func importCSV(location string) error {
                                     group += string(content[z])
                                 }
                             }
-                            if group[0] == '' || group[0] =='/' ||
+                            if group[0] == ' ' || group[0] =='/' ||
                                     group[len(group) - 1] == '/' ||
                                     inString(group, "//") ||
                                     inString(group, "/") {
