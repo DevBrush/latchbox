@@ -15,6 +15,7 @@ import (
     "crypto/rand"
     "crypto/sha256"
     "crypto/sha512"
+    "encoding/csv"
     "errors"
     "io/ioutil"
     "math"
@@ -31,7 +32,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.3.1.6"
+    version = "v0.4.0.0"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -100,6 +101,7 @@ var (
     show bool
     configDir string
     omit bool
+    csvFile string
 )
 
 // Parses the decrypted password file and sorts the information in
@@ -177,8 +179,8 @@ func parseFile() {
                                 group[len(group) - 1] == '/' ||
                                 inString(group, "//") ||
                                 inString(group, "/ ") {
-                                    err = true
-                                }
+                            err = true
+                        }
                     } else if path == "" && point != "" {
                         err = true
                     }
@@ -195,12 +197,17 @@ func parseFile() {
         getTime(packet, &created, &packetPointer, pFileVersion, &err)
         getTime(packet, &modified, &packetPointer, pFileVersion, &err)
         var comment string
-        if len(packet) - packetPointer >= 0 && !err {
+        if len(packet) - packetPointer >= 0 &&
+                len(packet) - packetPointer < 65536 && !err {
             comment = string(packet[packetPointer:])
             comments = append(comments, comment)
         } else {
             err = true
         }
+    }
+    nameGroupsList := nameGroups()
+    if duplicateNameGroups(nameGroupsList) {
+        err = true
     }
     if err {
         lock()
@@ -229,6 +236,19 @@ func parseInfo(packet []byte, byteLen int, pointer *int, err *bool) (
     return pLen, pContent
 }
 
+// Remove last x values of menuList and make menu equal the new last value of
+// menuList.
+func subtractFromMenu(x int) {
+    menuList = menuList[:len(menuList) - x]
+    menu = menuList[len(menuList) - 1]
+}
+
+// Make menu equal menuString and append menu to menuList.
+func addToMenu(menuString string) {
+    menu = menuString
+    menuList = append(menuList, menu)
+}
+
 // Get YYYY-MM-DD hh:mm:ss timestamp out of 8 bytes (protocol version > 1)
 // or 4 bytes (protocol version 1).
 func getTime(packet []byte, entryList *[]string, pointer *int,
@@ -243,7 +263,7 @@ func getTime(packet []byte, entryList *[]string, pointer *int,
     if timeLen > 0 {
         timeByteString := string(packet[*pointer: *pointer + timeLen])
         var cInt float64
-        for x := 0; x < len(timeByteString); x++ {
+        for x := range timeByteString {
             cInt += float64(timeByteString[x]) * math.Pow(256, float64(timeLen -
                  1 - x))
         }
@@ -258,10 +278,256 @@ func getTime(packet []byte, entryList *[]string, pointer *int,
     *pointer += 4
 }
 
+// Reads the contents of a LastPass .csv file and adds the contents and saves
+// the password file with the added content.
+func importCSV(location string) error {
+    csvLocation, err := os.Open(location)
+    if err != nil {
+        contentString = "Cannot Open CSV File in " + location
+        return err
+    }
+    csvLabels := make(map[int]string)
+    r := csv.NewReader(csvLocation)
+    csvContent, err := r.ReadAll()
+    csvLocation.Close()
+    if err != nil {
+        return err
+    }
+    for x := range csvContent[0] {
+        csvLower := strings.ToLower(csvContent[0][x])
+        if csvLower == "name" || csvLower == "account" {
+            csvLabels[x] = "name"
+        } else if csvLower == "username" || csvLower == "login name" {
+            csvLabels[x] = "username"
+        } else if csvLower == "password" {
+            csvLabels[x] = "password"
+        } else if csvLower == "url" || csvLower == "web site" {
+            csvLabels[x] = "url"
+        } else if csvLower == "grouping" || csvLower == "group" {
+            csvLabels[x] = "group"
+        } else if csvLower == "extra" || csvLower == "comments" {
+            csvLabels[x] = "comment"
+        }
+    }
+    if len(csvLabels) == 0 {
+        contentString = "No Suitable Labels for Import Data"
+        return errors.New("No Suitable Labels for Import Data")
+    }
+    namesLen := len(names[:])
+    usernamesLen := len(usernames[:])
+    passwordsLen := len(passwords[:])
+    urlsLen := len(urls[:])
+    groupsLen := len(groups[:])
+    commentsLen := len(comments[:])
+    if len(csvContent) > 1 {
+        for x := range csvContent[1:] {
+            x += 1
+            for y := range csvContent[x] {
+                content := csvContent[x][y]
+                if csvLabels[y] == "name" {
+                    if len(names) == namesLen + x - 1 {
+                        if len(content) > 0 && len(content) < 256 {
+                            name := strings.Replace(content, "/", "\\", -1)
+                            names = append(names, name)
+                        } else {
+                            contentString = "Name is Not an Expected Length"
+                            return errors.New("Name is Not an Expected Length")
+                        }
+                    } else {
+                        contentString = "Too Many Names in One Entry"
+                        return errors.New("Too Many Names in One Entry")
+                    }
+                } else if csvLabels[y] == "username" {
+                    if len(usernames) == usernamesLen + x - 1 {
+                        if len(content) >= 0 && len(content) < 256 {
+                            usernames = append(usernames, content)
+                        } else {
+                            contentString = "Username is Not an Expected Length"
+                            return errors.New("Username is Not an Expected " +
+                                              "Length")
+                        }
+                    } else {
+                        contentString = "Too Many Usernames in One Entry"
+                        return errors.New("Too Many Usernames in One Entry")
+                    }
+                } else if csvLabels[y] == "password" {
+                    if len(passwords) == passwordsLen + x - 1 {
+                        if len(content) >= 0 && len(content) < 65536 {
+                            passwords = append(passwords, content)
+                        } else {
+                            contentString = "Password is Not an Expected Length"
+                            return errors.New("Password is Not an Expected " +
+                                              "Length")
+                        }
+                    } else {
+                        contentString = "Too Many Passwords in One Entry"
+                        return errors.New("Too Many Passwords in One Entry")
+                    }
+                } else if csvLabels[y] == "url" {
+                    if len(urls) == urlsLen + x - 1 {
+                        if len(content) >= 0 && len(content) < 256 {
+                            if strings.ToLower(content) == "http://" ||
+                                    strings.ToLower(content) == "https://" {
+                                urls = append(urls, "")
+                            } else {
+                                urls = append(urls, content)
+                            }
+                        } else {
+                            contentString = "URL is Not an Expected Length"
+                            return errors.New("URL is Not an Expected Length")
+                        }
+                    } else {
+                        contentString = "Too Many URLs in One Entry"
+                        return errors.New("Too Many URLs in One Entry")
+                    }
+                } else if csvLabels[y] == "group" {
+                    if len(groups) == groupsLen + x - 1 {
+                        var group string
+                        if len(content) >= 0 && len(content) < 256 {
+                            for z := range content {
+                                if content[z] == '/' {
+                                    group += "\\"
+                                } else if content[z] == '\\' {
+                                    group += "/"
+                                } else {
+                                    group += string(content[z])
+                                }
+                            }
+                            if group[0] == '' || group[0] =='/' ||
+                                    group[len(group) - 1] == '/' ||
+                                    inString(group, "//") ||
+                                    inString(group, "/") {
+                                contentString = "Invalid Group Name " + group
+                                return errors.New("Invalid Group Name " + group)
+                            }
+                            groups = append(groups, group)
+                        } else {
+                            contentString = "Group Name is Not an Expected " +
+                                "Length"
+                            return errors.New("Group Name is Not an Expected " +
+                                              "Length")
+                        }
+                    } else {
+                        contentString = "Too Many Group Names In One Entry"
+                        return errors.New("Too Many Group Names in One Entry")
+                    }
+                } else if csvLabels[y] == "comment" {
+                    if len(comments) == commentsLen + x - 1 {
+                        if len(content) >= 0 && len(content) < 65536 {
+                            comments = append(comments, content)
+                        } else {
+                            contentString = "Comment is Not an Expected Length"
+                            return errors.New("Comment is Not an Expected " +
+                                              "Length")
+                        }
+                    } else {
+                        contentString = "Too Many URLs in One Entry"
+                        return errors.New("Too Many URLs in One Entry")
+                    }
+                }
+            }
+            if len(names) <= namesLen + x - 1 {
+                names = append(names, "")
+            }
+            if len(usernames) <= usernamesLen + x - 1 {
+                usernames = append(usernames, "")
+            }
+            if len(passwords) <= passwordsLen + x - 1 {
+                passwords = append(passwords, "")
+            }
+            if len(urls) <= urlsLen + x - 1 {
+                urls = append(urls, "")
+            }
+            if len(groups) <= groupsLen + x - 1 {
+                groups = append(groups, "")
+            }
+            if len(comments) <= commentsLen + x - 1 {
+                comments = append(comments, "")
+            }
+            emails = append(emails, "")
+            create := time.Now().Format(timeLayout)
+            created = append(created, create)
+            modified = append(modified, create)
+        }
+        nameGroupsList := nameGroups()
+        if duplicateNameGroups(nameGroupsList) {
+            contentString = "Duplicate Name/Group Combination"
+            return errors.New("Duplicate Name/Group Combination")
+        }
+    } else {
+        contentString = "No Contents in CSV File"
+        return errors.New("No Contents in CSV File")
+    }
+    err = writeData()
+    if err != nil {
+        contentString = "Unable to Modify Password File " +
+            "(Write Error)"
+        return errors.New("Unable to Modify Password File")
+    }
+    contentString = "CSV File Imported from " + location + "!\n\n" +
+        "Don't forget to fully delete the CSV file when you " +
+        "don't need it anymore.  It is best to shred and delete " +
+        "the file for security by using:\n\n"
+    if runtime.GOOS == "darwin" {
+        contentString += "srm -sz " + location
+    } else {
+        contentString += "shred -z " + location + "; rm " + location
+    }
+    return nil
+}
+
+// Creates a LastPass .csv file that can be imported to LastPass and KeePass.
+func exportCSV(location string) error {
+    csvLocation, err := os.Create(location)
+    if err != nil {
+        return err
+    }
+    w := csv.NewWriter(csvLocation)
+    w.Write([]string{"name", "username", "password", "url",
+            "grouping", "extra"})
+    var writeErr error
+    for x := range names {
+        var newGroup string
+        for y := range groups[x] {
+            if groups[x][y] == '/' {
+                newGroup += "\\"
+            } else if groups[x][y] == '\\' {
+                newGroup += "/"
+            } else {
+                newGroup += string(groups[x][y])
+            }
+        }
+        var url string
+        if len(urls[x]) == 0 {
+            url = "http://"
+        } else {
+            url = urls[x]
+        }
+        writeErr = w.Write([]string{names[x], usernames[x], passwords[x],
+                       url, newGroup, comments[x]})
+    }
+    if writeErr != nil {
+        os.Remove(location)
+        return writeErr
+    }
+    w.Flush()
+    contentString = "CSV File Created in " + location + "!\n\n" +
+        "Don't forget to fully delete the CSV file when you " +
+        "don't need it anymore.  It is best to shred and delete " +
+        "the file for security by using:\n\n"
+    if runtime.GOOS == "darwin" {
+        contentString += "srm -sz " + location
+    } else {
+        contentString += "shred -z " + location + "; rm " + location
+    }
+    csvLocation.Close()
+    return nil
+}
+
 // Organize data into password file protocol, then encrypt the
 // password file and write to file.  If first time writing and backups
 // allowed, make a backup.
-func writeData() {
+func writeData() error {
     groupMap()
     var dataList [][]byte
     for x := range names {
@@ -297,10 +563,14 @@ func writeData() {
     dataEncrypt := encrypt(data, key)
     dataEncrypt = append([]byte(salt), dataEncrypt...)
     dataEncrypt = append(dataEncrypt, ptHash...)
+    err := ioutil.WriteFile(fPath, dataEncrypt, 0644)
+    if err != nil {
+        return err
+    }
     if len(names) > 0 {
         doBackup()
     }
-    ioutil.WriteFile(fPath, dataEncrypt, 0644)
+    return nil
 }
 
 // Convert YYYY-MM-DD hh:mm:ss timestamp to local Unix time.
@@ -376,11 +646,11 @@ func intByte(i int64, byteNum int) []byte {
 
 // Checks if the string char is in the string input.
 func inString(input, char string) bool {
-    for i := 0; i < len(input); i++ {
-        if input[i] == char[0] {
+    for x := range input {
+        if input[x] == char[0] {
             if len(char) == 2 {
-                if i < len(input) - 1 {
-                    if input[i + 1] == char[1] {
+                if x < len(input) - 1 {
+                    if input[x + 1] == char[1] {
                         return true
                     }
                 }
@@ -408,11 +678,11 @@ func getLen(byteString []byte) int {
 // concatenated with the names.
 func nameGroups() []string {
     var nameGroupsList []string
-    for i := 0; i < len(names); i++ {
-        if groups[i] == "" {
-            nameGroupsList = append(nameGroupsList, names[i])
+    for x := range names {
+        if groups[x] == "" {
+            nameGroupsList = append(nameGroupsList, names[x])
         } else {
-            nameGroupsList = append(nameGroupsList, groups[i] + "/" + names[i])
+            nameGroupsList = append(nameGroupsList, groups[x] + "/" + names[x])
         }
     }
     nameGroupsList = ciSort(nameGroupsList)
@@ -487,13 +757,13 @@ func hashKey(passValue, salt string) []byte {
 
 // Pads the byte slice message and encrypts it using the byte string key and AES256 CBC.
 func encrypt(message, key []byte) []byte {
-    x := (aes.BlockSize - len(message) % aes.BlockSize)
-    if x == 0 {
-        x = 16
+    pad := (aes.BlockSize - len(message) % aes.BlockSize)
+    if pad == 0 {
+        pad = 16
     }
     paddedMessage := message
-    for i := 0; i < x; i++ {
-        paddedMessage = append(paddedMessage, uint8(x))
+    for x := 0; x < pad; x++ {
+        paddedMessage = append(paddedMessage, uint8(pad))
     }
     block, err := aes.NewCipher(key)
     if err != nil {
@@ -716,7 +986,7 @@ func multiLine(valueString string, w int) []string {
 // Parses the config file to figure out the default password file location
 // and if backups are allowed.
 func configParse() {
-    configFile := configDir + "config.txt"
+    configFile := configDir + "config"
     content, err := ioutil.ReadFile(configFile)
     if err == nil {
         configSplit := strings.Split(string(content), "\n")
@@ -762,11 +1032,9 @@ func welcomeSettings() {
 func welcomeOptions(ev termbox.Event) {
     if ev.Ch != 0 {
         if ev.Ch == 'n' {
-            menu = "New Password"
-            menuList = append(menuList, menu)
+            addToMenu("New Password")
         } else if ev.Ch == 'o' {
-            menu = "Open Password"
-            menuList = append(menuList, menu)
+            addToMenu("Open Password")
         }
     }
 }
@@ -843,8 +1111,7 @@ func newPOptions(ev termbox.Event) {
             if fPath != "" {
                 step[0] = true
                 omit = true
-                menu = "Secure Password"
-                menuList = append(menuList, menu)
+                addToMenu("Secure Password")
             }
         } else {
             contentExtra = "File Name Required"
@@ -868,7 +1135,7 @@ func securePSettings() {
     } else {
         options += "OMIT"
     }
-    options += " KEY FILE"
+    options += " KEYFILE"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
@@ -897,15 +1164,17 @@ func securePOptions(ev termbox.Event) {
             if value == key1 {
                 if !omit {
                     tmpPassphrase = value
-                    menu = "Keyfile"
-                    menuList = append(menuList, menu)
+                    addToMenu("Keyfile")
                 } else {
                     passphrase = value
-                    writeData()
-                    contentString = "Your Password File Was Created" +
-                        "Successfully!"
-                    menu = "Main Menu"
-                    menuList = append(menuList, menu)
+                    err := writeData()
+                    if err != nil {
+                        contentString = "Unable to Create Password File"
+                    } else {
+                        contentString = "Your Password File Was Created " +
+                            "Successfully!"
+                        addToMenu("Main Menu")
+                    }
                 }
             } else {
                 contentString = "New Passphrases Do Not Match"
@@ -992,8 +1261,7 @@ func openPOptions(ev termbox.Event) {
                 step[0] = true
                 contentString = ""
                 omit = true
-                menu = "Unlock Password"
-                menuList = append(menuList, menu)
+                addToMenu("Unlock Password")
             }
         }
     }
@@ -1011,7 +1279,7 @@ func unlockPSettings() {
     } else {
         options += "OMIT"
     }
-    options += " KEY FILE"
+    options += " KEYFILE"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
@@ -1035,8 +1303,7 @@ func unlockPOptions(ev termbox.Event) {
     if valueEntered {
         if !omit {
             tmpPassphrase = value
-            menu = "Keyfile"
-            menuList = append(menuList, menu)
+            addToMenu("Keyfile")
         } else {
             salt, strippedCtext, hash, _ := parseCt(ciphertext)
             hashedPassphrase := hashKey(value, string(salt))
@@ -1049,8 +1316,7 @@ func unlockPOptions(ev termbox.Event) {
                 fileContents = plaintext
                 parseFile()
                 contentString = ""
-                menu = "Main Menu"
-                menuList = append(menuList, menu)
+                addToMenu("Main Menu")
             } else {
                 contentString = "Incorrect Passphrase/Keyfile Combination"
             }
@@ -1091,11 +1357,15 @@ func keyfileOptions(ev termbox.Event) {
             tmpPassphrase += string(contentHash)
             if menuList[len(menuList) - 2] == "Secure Password" {
                 passphrase = tmpPassphrase
-                writeData()
-                contentString = "Your Password File Was Created Successfully!"
+                err := writeData()
+                if err != nil {
+                    contentString = "Unable to Create Password File"
+                } else {
+                    contentString = "Your Password File Was Created " +
+                        "Successfully!"
+                    addToMenu("Main Menu")
+                }
                 tmpPassphrase = ""
-                menu = "Main Menu"
-                menuList = append(menuList, menu)
             } else if menuList[len(menuList) - 2] == "Unlock Password" {
                 ciphertext, _ := ioutil.ReadFile(fPath)
                 salt, strippedCtext, hash, _ := parseCt(ciphertext)
@@ -1110,15 +1380,35 @@ func keyfileOptions(ev termbox.Event) {
                     parseFile()
                     contentString = ""
                     tmpPassphrase = ""
-                    menu = "Main Menu"
-                    menuList = append(menuList, menu)
+                    addToMenu("Main Menu")
                 } else {
                     contentString = "Incorrect Passphrase/Keyfile " +
                         "Combination"
                     tmpPassphrase = ""
                     omit = true
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
+                }
+            } else if menuList[len(menuList) - 2] == "Export" {
+                if passphrase == tmpPassphrase {
+                    contentString = ""
+                    tmpPassphrase = ""
+                    omit = true
+                    err := exportCSV(csvFile)
+                    if err != nil {
+                        contentString = "Unable to Create " + csvFile
+                        step[0] = true
+                    } else {
+                        contentString = "Exported Succesfully to " + csvFile
+                        subtractFromMenu(1)
+                    }
+                    csvFile = ""
+                    subtractFromMenu(1)
+                } else {
+                    contentString = "Incorrect Passphrase/Keyfile " +
+                        "Combination"
+                    tmpPassphrase = ""
+                    omit = true
+                    subtractFromMenu(1)
                 }
             } else {
                 if step[0] {
@@ -1127,24 +1417,26 @@ func keyfileOptions(ev termbox.Event) {
                         step[0], step[1] = false, true
                         tmpPassphrase = ""
                         omit = true
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
+                        subtractFromMenu(1)
                     } else {
                         contentString = "Incorrect Passphrase/Keyfile " +
                             "Combination"
                         tmpPassphrase = ""
                         omit = true
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
+                        subtractFromMenu(1)
                     }
                 } else {
                     passphrase = tmpPassphrase
-                    writeData()
-                    contentString = "Your Passphrase/Keyfile Was " +
-                        "Successfully Changed!"
+                    err := writeData()
+                    if err != nil {
+                        contentString = "Unable to Modify Password File " +
+                            "(Write Error)"
+                    } else {
+                        contentString = "Your Passphrase/Keyfile Was " +
+                            "Successfully Changed!"
+                        addToMenu("Main Menu")
+                    }
                     tmpPassphrase = ""
-                    menu = "Main Menu"
-                    menuList = append(menuList, menu)
                 }
             }
         }
@@ -1174,10 +1466,10 @@ func mainSettings() {
     bottomCaption = ""
     locationTitle = "MAIN MENU"
     if len(names) > 0 {
-        options = "c:COPY  v:VIEW  n:NEW  d:DELETE  e:EDIT  p:PASSPHRASE  " +
-            "l:LOCK"
+        options = "c:COPY  v:VIEW  n:NEW  d:DELETE  e:EDIT  l:LOCK  " +
+            "?:MORE OPTIONS"
     } else {
-        options = "n:NEW  p:PASSPHRASE  l:LOCK"
+        options = "n:NEW  l:LOCK  ?:MORE OPTIONS"
     }
 }
 
@@ -1185,30 +1477,33 @@ func mainOptions(ev termbox.Event) {
     if ev.Ch != 0 {
         if len(names) > 0 {
             if ev.Ch == 'c' {
-                menu = "Copy"
-                menuList = append(menuList, menu)
+                addToMenu("Copy")
             } else if ev.Ch == 'v' {
-                menu = "View"
-                menuList = append(menuList, menu)
+                addToMenu("View")
             } else if ev.Ch == 'd' {
-                menu = "Delete"
-                menuList = append(menuList, menu)
+                addToMenu("Delete")
             } else if ev.Ch == 'e' {
                 step[0] = true
-                menu = "Edit"
-                menuList = append(menuList, menu)
+                addToMenu("Edit")
             }
         }
         if ev.Ch == 'n' {
             step[0] = true
-            menu = "New"
-            menuList = append(menuList, menu)
-        } else if ev.Ch == 'p' {
-            contentString = ""
-            menu = "Change Passphrase"
-            menuList = append(menuList, menu)
+            addToMenu("New")
         } else if ev.Ch == 'l' {
             lock()
+        } else if ev.Ch == 'p' {
+            addToMenu("Change Passphrase")
+        } else if ev.Ch == 'i' {
+            contentString = ""
+            addToMenu("Import")
+        } else if ev.Ch == 'x' {
+            contentString = ""
+            step[0] = true
+            omit = true
+            addToMenu("Export")
+        } else if ev.Ch == '?' {
+            addToMenu("Options")
         }
     }
 }
@@ -1241,8 +1536,7 @@ func copyEOptions(ev termbox.Event) {
             if intVal > 0 && intVal <= len(names) {
                 entryNumber = intVal
                 entryData = ""
-                menu = "Copy Content"
-                menuList = append(menuList, menu)
+                addToMenu("Copy Content")
             }
         }
     }
@@ -1290,8 +1584,7 @@ func copyContentOptions(ev termbox.Event) {
             }
             err := clipboard.WriteAll(data)
             if err != nil {
-                menuList = menuList[:len(menuList) - 2]
-                menu = menuList[len(menuList) - 1]
+                subtractFromMenu(2)
                 contentString = "Unable to Copy Content to Clipboard"
             }
         }
@@ -1326,8 +1619,7 @@ func viewEOptions(ev termbox.Event) {
             if intVal > 0 && intVal <= len(names) {
                 entryNumber = intVal
                 show = false
-                menu = "View Content"
-                menuList = append(menuList, menu)
+                addToMenu("View Content")
             }
         }
     }
@@ -1345,7 +1637,7 @@ func viewContentSettings() {
         password = passwords[orderList[entryNumber - 1]]
         options = "s:HIDE PASSWORD"
     } else {
-        for x := 0; x < len(passwords[orderList[entryNumber - 1]]); x++ {
+        for _ = range passwords[orderList[entryNumber - 1]] {
             password += "*"
         }
         options = "s:SHOW PASSWORD"
@@ -1456,7 +1748,8 @@ func newEOptions(ev termbox.Event) {
             if step[0] {
                 newValue = make([]string, 0)
                 if len(value) < 256 && len(value) > 0 {
-                    if !inString(value, "/") {
+                    if !inString(value, "/") &&
+                        !inString(value, "\\") {
                         contentExtra = ""
                         newValue = append(newValue, value)
                         step[0], step[1] = false, true
@@ -1493,7 +1786,7 @@ func newEOptions(ev termbox.Event) {
                 }
             } else if step[8] {
                 key1 = ""
-                if len(value) < 66536 {
+                if len(value) < 65536 {
                     contentExtra = ""
                     key1 = value
                     step[8], step[9] = false, true
@@ -1545,7 +1838,8 @@ func newEOptions(ev termbox.Event) {
                         if len(value) > 0 {
                             if value[0] != '/' && value[len(value) - 1] !=
                                     '/' && !inString(value, "//") &&
-                                    !inString(value, "/ ") {
+                                    !inString(value, "/ ") &&
+                                    !inString(value, "\\") {
                                 contentExtra = ""
                                 newValue = append(newValue, value)
                                 step[12] = false
@@ -1562,7 +1856,7 @@ func newEOptions(ev termbox.Event) {
                     contentExtra = "Group Name Too Long"
                 }
             } else {
-                if len(value) < 66536 {
+                if len(value) < 65536 {
                     contentExtra = ""
                     names = append(names, newValue[0])
                     usernames = append(usernames, newValue[1])
@@ -1577,10 +1871,14 @@ func newEOptions(ev termbox.Event) {
                     passChars = make([]bool, 0)
                     newValue = make([]string, 0)
                     passLen = 0
-                    writeData()
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
-                    contentString = ""
+                    err := writeData()
+                    if err != nil {
+                        contentString = "Unable to Modify Password File " +
+                            "(Write Error)"
+                    } else {
+                        contentString = ""
+                    }
+                    subtractFromMenu(1)
                 } else {
                     contentExtra = "Comment Too Long"
                 }
@@ -1654,8 +1952,7 @@ func deleteEOptions(ev termbox.Event) {
         if err == nil {
             if intVal > 0 && intVal <= len(names) {
                 entryNumber = intVal
-                menu = "Delete Content"
-                menuList = append(menuList, menu)
+                addToMenu("Delete Content")
             }
         }
     }
@@ -1690,16 +1987,18 @@ func deleteContentOptions(ev termbox.Event) {
             comments = append(comments[:num], comments[num + 1:]...)
             created = append(created[:num], created[num + 1:]...)
             modified = append(modified[:num], modified[num + 1:]...)
-            contentString = nameGroupsList[entryNumber - 1] +
-                " Was Successfully Deleted"
-            menuList = menuList[:len(menuList) - 1]
-            menu = menuList[len(menuList) - 1]
-            writeData()
+            err := writeData()
+            if err != nil {
+                contentString = "Unable to Modify Password File (Write Error)"
+            } else {
+                contentString = nameGroupsList[entryNumber - 1] +
+                    " Was Successfully Deleted"
+            }
+            subtractFromMenu(1)
         } else if ev.Ch == 'n' {
             contentString = nameGroupsList[entryNumber - 1] +
                 " Was NOT Deleted"
-            menuList = menuList[:len(menuList) - 1]
-            menu = menuList[len(menuList) - 1]
+            subtractFromMenu(1)
         }
     }
 }
@@ -1731,8 +2030,7 @@ func editEOptions(ev termbox.Event) {
         if err == nil {
             if intVal > 0 && intVal <= len(names) {
                 entryNumber = intVal
-                menu = "Edit Content"
-                menuList = append(menuList, menu)
+                addToMenu("Edit Content")
             }
         }
     }
@@ -1860,8 +2158,7 @@ func editContentOptions(ev termbox.Event) {
                     passChars = append(passChars, true)
                     password := genPass(uint16(passLen), passChars)
                     passwords[num] = password
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                     step[5] = false
                 }
             } else if ev.Ch == 'n' {
@@ -1882,8 +2179,7 @@ func editContentOptions(ev termbox.Event) {
                     passChars = append(passChars, false)
                     password := genPass(uint16(passLen), passChars)
                     passwords[num] = password
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                     step[5] = false
                 }
             }
@@ -1914,7 +2210,7 @@ func editContentOptions(ev termbox.Event) {
                     }
                 } else if step[6] {
                     key1 = ""
-                    if len(value) < 66536 {
+                    if len(value) < 65536 {
                         contentExtra = ""
                         key1 = value
                         step[6], step[7] = false, true
@@ -1927,8 +2223,7 @@ func editContentOptions(ev termbox.Event) {
                     if key1 == value {
                         contentString = "Password Changed"
                         passwords[num] = value
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
+                        subtractFromMenu(1)
                         step[5] = false
                     } else {
                         contentExtra = "New Passwords Do Not Match"
@@ -1949,7 +2244,8 @@ func editContentOptions(ev termbox.Event) {
             contentExtra = ""
             if entryData == "Name" {
                 if len(value) < 256 && len(value) > 0 &&
-                        !inString(value, "/") {
+                        !inString(value, "/") &&
+                        !inString(value, "\\") {
                     name := value
                     group := groups[entryNumber - 1]
                     if group == "" {
@@ -1961,8 +2257,7 @@ func editContentOptions(ev termbox.Event) {
                     if !duplicateNameGroups(nameGroupsList) {
                         contentString = "Name Changed"
                         names[num] = value
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
+                        subtractFromMenu(1)
                     } else {
                         contentExtra = "Duplicate Name/Group Combination"
                     }
@@ -1977,8 +2272,7 @@ func editContentOptions(ev termbox.Event) {
                 if len(value) < 256 {
                     contentString = "Username Changed"
                     usernames[num] = value
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                 } else {
                     contentExtra = "Username Too Long"
                 }
@@ -1986,15 +2280,13 @@ func editContentOptions(ev termbox.Event) {
                 if len(value) < 256 {
                     contentString = "Email Changed"
                     emails[num] = value
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                 }
             } else if entryData == "URL" {
                 if len(value) < 256 {
                     contentString = "URL Changed"
                     urls[num] = value
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                 }
             } else if entryData == "Group" {
                 if len(value) < 256{
@@ -2007,12 +2299,12 @@ func editContentOptions(ev termbox.Event) {
                             "/" + name
                     }
                     if group[0] != '/' && group[len(group) - 1] != '/' &&
-                            !inString(group, "//") && !inString(group, "/ ") {
+                            !inString(group, "//") && !inString(group, "/ ") &&
+                            !inString(group, "\\") {
                         if !duplicateNameGroups(nameGroupsList) {
                             contentString = "Group Name Changed"
                             groups[num] = value
-                            menuList = menuList[:len(menuList) - 1]
-                            menu = menuList[len(menuList) - 1]
+                            subtractFromMenu(1)
                         } else {
                             contentExtra = "Duplicate Name/Group Combination"
                         }
@@ -2023,11 +2315,10 @@ func editContentOptions(ev termbox.Event) {
                     contentExtra = "Group Name Too Long"
                 }
             } else if entryData == "Comment" {
-                if len(value) < 66536 {
+                if len(value) < 65536 {
                     contentString = "Comment Changed"
                     comments[num] = value
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                 }
             }
         }
@@ -2036,7 +2327,10 @@ func editContentOptions(ev termbox.Event) {
         contentExtra = ""
         entryData = ""
         modified[num] = time.Now().Format(timeLayout)
-        writeData()
+        err := writeData()
+        if err != nil  {
+            contentString = "Unable to Modify Password File (Write Error)"
+        }
     }
 }
 
@@ -2045,18 +2339,17 @@ func cPassphraseSettings() {
     ctrlC = true
     termbox.HideCursor()
     locationTitle = "CHANGE PASSPHRASE/KEYFILE"
-    options = "y:YES n:NO"
+    contentString = ""
+    options = "y:YES  n:NO"
 }
 
 func cPassphraseOptions(ev termbox.Event) {
     if ev.Ch == 'y' {
         omit = true
         step[0] = true
-        menu = "Passphrase"
-        menuList = append(menuList, menu)
+        addToMenu("Passphrase")
     } else if ev.Ch == 'n' {
-        menu = "Main Menu"
-        menuList = menuList[:len(menuList) - 1]
+        subtractFromMenu(1)
     }
 }
 
@@ -2068,6 +2361,7 @@ func passphraseSettings() {
     }
     ctrlC = true
     passwordInput = true
+    contentString = ""
     options = "Enter:CONFIRM  Ctrl-T:"
     if step[0] {
         bottomCaption = "Input Passphrase: "
@@ -2081,7 +2375,7 @@ func passphraseSettings() {
     } else {
         options += "OMIT"
     }
-    options += " KEY FILE"
+    options += " KEYFILE"
     termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
@@ -2106,8 +2400,7 @@ func passphraseOptions(ev termbox.Event) {
             if !omit {
                 contentString = ""
                 tmpPassphrase = value
-                menu = "Keyfile"
-                menuList = append(menuList, menu)
+                addToMenu("Keyfile")
             } else {
                 if value == passphrase {
                     contentString = ""
@@ -2125,15 +2418,18 @@ func passphraseOptions(ev termbox.Event) {
             if value == key1 {
                 if !omit {
                     tmpPassphrase = value
-                    menu = "Keyfile"
-                    menuList = append(menuList, menu)
+                    addToMenu("Keyfile")
                 } else {
                     passphrase = value
-                    writeData()
-                    contentString = "Your Passphrase/Keyfile Was " +
-                        "Successfully Changed!"
-                    menu = "Main Menu"
-                    menuList = append(menuList, menu)
+                    err := writeData()
+                    if err != nil {
+                        contentString = "Unable to Modify Password File " +
+                            "(Write Error)"
+                    } else {
+                        contentString = "Your Passphrase/Keyfile Was " +
+                            "Successfully Changed!"
+                    }
+                    addToMenu("Main Menu")
                 }
             } else {
                 contentString = "New Passphrases Do Not Match"
@@ -2144,13 +2440,153 @@ func passphraseOptions(ev termbox.Event) {
     }
 }
 
+// IMPORT CSV FILE
+func importSettings() {
+    ctrlC = true
+    locationTitle = "IMPORT CSV FILE"
+    options = "Enter:CONFIRM"
+    passwordInput = false
+    bottomCaption = "Path for CSV File: "
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
+}
+
+func importOptions(ev termbox.Event) {
+    var valueEntered bool
+    if ev.Key == termbox.KeyEnter {
+        value = string(edit_box.text)
+        valueEntered = true
+        edit_box.text = make([]byte, 0)
+        edit_box.MoveCursorTo(0)
+    } else {
+        textEdit(ev)
+    }
+    if valueEntered {
+        if _, err := os.Stat(value); err != nil {
+            contentString = "File " + value + " Does Not Exist"
+        } else {
+            namesBackup := names[:]
+            usernamesBackup := usernames[:]
+            passwordsBackup := passwords[:]
+            emailsBackup := emails[:]
+            urlsBackup := urls[:]
+            groupsBackup := groups[:]
+            commentsBackup := comments[:]
+            createdBackup := created[:]
+            modifiedBackup := modified[:]
+            err := importCSV(value)
+            if err != nil {
+                names = namesBackup[:]
+                usernames = usernamesBackup[:]
+                passwords = passwordsBackup[:]
+                emails = emailsBackup[:]
+                urls = urlsBackup[:]
+                groups = groupsBackup[:]
+                comments = commentsBackup[:]
+                created = createdBackup[:]
+                modified = modifiedBackup[:]
+            }
+            subtractFromMenu(1)
+        }
+    }
+}
+
+// EXPORT CSV FILE
+func exportSettings() {
+    ctrlC = true
+    locationTitle = "EXPORT CSV FILE"
+    options = "Enter:CONFIRM"
+    if step[0] {
+        passwordInput = false
+        bottomCaption = "Path for CSV File: "
+    } else {
+        passwordInput = true
+        bottomCaption = "Input Password: "
+        options += "  Ctrl-T:"
+        if omit {
+            options += "INCLUDE"
+        } else {
+            options += "OMIT"
+        }
+        options += " KEYFILE"
+    }
+    termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
+}
+
+func exportOptions(ev termbox.Event) {
+    var valueEntered bool
+    if ev.Key == termbox.KeyEnter {
+        value = string(edit_box.text)
+        valueEntered = true
+        edit_box.text = make([]byte, 0)
+        edit_box.MoveCursorTo(0)
+    } else if ev.Key == termbox.KeyCtrlT && !step[0] {
+        if omit {
+            omit = false
+        } else {
+            omit = true
+        }
+    } else {
+        textEdit(ev)
+    }
+    if valueEntered {
+        if step[0] {
+            if _, err := os.Stat(value); err == nil {
+                contentString = "File " + value + " Already Exists"
+            } else {
+                contentString = ""
+                csvFile = value
+                step[0] = false
+            }
+        } else {
+            if !omit {
+                contentString = ""
+                tmpPassphrase = value
+                addToMenu("Keyfile")
+            } else {
+                if value == passphrase {
+                    contentString = ""
+                    err := exportCSV(csvFile)
+                    if err != nil {
+                        contentString = "Unable to Create " + csvFile
+                        step[0] = true
+                    } else {
+                        subtractFromMenu(1)
+                    }
+                    csvFile = ""
+                } else {
+                    contentString = "Incorrect Passphrase/Keyfile " +
+                        "Combination"
+                }
+            }
+        }
+    }
+}
+
+// MORE OPTIONS
+func optionsSettings() {
+    ctrlC = true
+    termbox.HideCursor()
+    locationTitle = "MORE OPTIONS"
+    options = "Ctrl-C:BACK"
+    bottomCaption = ""
+    contentString = "c:COPY              Copy Value of Entry\n\n" +
+        "v:VIEW              View Values of Entry\n\n" +
+        "n:NEW               Create a New Entry\n\n" +
+        "d:DELETE            Delete Entry\n\n" +
+        "e:EDIT              Edit Value of Entry\n\n" +
+        "p:PASSPHRASE        Change Passphrase/Keyfile of Password File\n\n" +
+        "i:IMPORT            Import Entries from .CSV File\n\n" +
+        "x:EXPORT            Export Entries to a .CSV File\n\n" +
+        "l:LOCK              Lock Password File"
+}
+
 // Creates a string with the group name combinations along with a number
 // in square brackets ahead of it to indicate that group name combination
 // option for selecting the group name entry to use.
 func displayNameGroups() string {
     content := ""
     nameGroupsList := nameGroups()
-    for x := 0; x < len(nameGroupsList); x++ {
+    for x := range nameGroupsList {
         content += "[" + strconv.Itoa(x + 1) + "] " + nameGroupsList[x] + "\n"
     }
     return content[:len(content) - 1]
@@ -2188,7 +2624,7 @@ func genPass (pLen uint16, ulds []bool) string {
     for x := 0; x < 4; x++ {
         position := getRandNumber(int64(pLen))
         var bad bool
-        for y := 0; y < len(randomValues); y++ {
+        for y := range randomValues {
             if randomValues[y] == uint16(position) {
                 bad = true
             }
@@ -2289,7 +2725,7 @@ func (eb *EditBox) Layout(x, y, w, h int) {
     // Input * characters if passwordInput is true
     if passwordInput {
         t = make([]byte, 0)
-        for i := 0; i < len(eb.text); i++ {
+        for _ = range eb.text {
             t = append(t, '*')
         }
     }
@@ -2411,7 +2847,7 @@ func textEdit(ev termbox.Event) {
 func makeConfig() {
     usr, _ := user.Current()
     configDir = usr.HomeDir + "/.latchbox/"
-    configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
+    configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"\n" +
         configDir + "passwords.lbp\""
     if _, err := os.Stat(configDir); err != nil {
         os.MkdirAll(configDir, 0755)
@@ -2512,8 +2948,14 @@ loop:
             editContentSettings()
         } else if menu == "Change Passphrase" {
             cPassphraseSettings()
+        } else if menu == "Import" {
+            importSettings()
+        } else if menu == "Export" {
+            exportSettings()
         } else if menu == "Passphrase" {
             passphraseSettings()
+        } else if menu == "Options" {
+            optionsSettings()
         }
         draw()
         switch ev := termbox.PollEvent(); ev.Type {
@@ -2540,20 +2982,20 @@ loop:
                     } else if menu == "Delete Content" {
                         contentString = nameGroupsList[entryNumber - 1] +
                             " Was NOT Deleted"
-                    }
-                    if menu == "Passphrase" {
+                    } else if menu == "Export" {
+                        csvFile = ""
+                        contentString = "Content was NOT Exported!"
+                    } else if menu == "Passphrase" {
                         contentString = "Your Passphrase/Keyfile Was NOT" +
                             " Changed!"
                     }
-                    menuList = menuList[:len(menuList) - 1]
-                    menu = menuList[len(menuList) - 1]
+                    subtractFromMenu(1)
                     if menu == "Secure Password" || menu == "Passphrase" {
                         if menu == "Passphrase" {
                             contentString = "Your Passphrase/Keyfile Was" +
                                 "NOT Changed!"
                         }
-                        menuList = menuList[:len(menuList) - 1]
-                        menu = menuList[len(menuList) - 1]
+                        subtractFromMenu(1)
                     }
                     bottomCaption = ""
                     contentExtra = ""
@@ -2604,6 +3046,10 @@ loop:
                     editEOptions(ev)
                 } else if menu == "Edit Content" {
                     editContentOptions(ev)
+                } else if menu == "Import" {
+                    importOptions(ev)
+                } else if menu == "Export" {
+                    exportOptions(ev)
                 } else if menu == "Change Passphrase" {
                     cPassphraseOptions(ev)
                 } else if menu == "Passphrase" {
