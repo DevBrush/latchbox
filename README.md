@@ -11,11 +11,11 @@ _A Console Based Password Management Program_
 
 ####Build:
 
-    $ go get bitbucket.org/PariahVi/latchbox
+    $ go get github.com/PariahVi/latchbox
 
 ####Install:
 
-    $ go install bitbucket.org/PariahVi/latchbox
+    $ go install github.com/PariahVi/latchbox
 
 ####Platforms:
 
