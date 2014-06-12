@@ -122,7 +122,7 @@ _A Console Based Password Management Program_
 
 ####Config File:
 
-After starting LatchBox, a config file and latchbox folder will be created.  In Windows, that folder will be at `%USERPROFILE%\AppData\Local\latchbox\`, otherwise it the folder will be at `$HOME/.latchbox/`.  The folder will contain a file called `config.txt`.  You can edit the config file by changing the contents inside of the quotes.
+After starting LatchBox, a config file and latchbox folder will be created.  That folder will be at `$HOME/.latchbox/`.  The folder will contain a file called `config`.  You can edit the config file by changing the contents inside of the quotes.
 
 To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure makeBackups is set to "true" (case-insensitive).
 
@@ -141,7 +141,7 @@ Expected csv labels (case insensitive) for the different entries are:
 * *grouping* or *group* for **GROUP**
 * *extra* or *comments* for **COMMENT**
 
-These labels can be in any order and some can be excluded as long as *name* or *account* is encluded.  Quotation marks are allowed every csv field as well.
+These labels can be in any order and some can be excluded as long as *name* or *account* is included.  Quotation marks are allowed every csv field as well.
 
 To convert from other formats (Mostly LastPass and KeePass) and prevent conflicts, the **NAME** entries will replace **/** symbols with **\** symbols and the **GROUP** entries will swap both **/** symbols and **\** symbols.
 
