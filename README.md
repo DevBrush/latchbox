@@ -6,7 +6,7 @@ _A Console Based Password Management Program_
 
 ####Dependencies:
 
-* Go
+* Go >= 1.2
 * xclip (For BSD and GNU/Linux)
 
 ####Build:
