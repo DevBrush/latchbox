@@ -32,7 +32,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.4.0.1"
+    version = "v0.4.0.2"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -2847,11 +2847,11 @@ func textEdit(ev termbox.Event) {
 func makeConfig() {
     usr, _ := user.Current()
     configDir = usr.HomeDir + "/.latchbox/"
-    configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"\n" +
+    configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
         configDir + "passwords.lbp\""
     if _, err := os.Stat(configDir); err != nil {
-        os.MkdirAll(configDir, 0755)
-        ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
+        os.MkdirAll(configDir, 0775)
+        ioutil.WriteFile(configDir + "config", []byte(configContent), 0664)
     } else {
         content, err := ioutil.ReadFile(configDir + "config")
         if err != nil || len(content) == 0 {
@@ -2860,7 +2860,7 @@ func makeConfig() {
                 os.Rename(configDir + "config.txt", configDir + "config")
             } else {
                 ioutil.WriteFile(configDir + "config",
-                    []byte(configContent), 0644)
+                    []byte(configContent), 0664)
             }
         }
     }
