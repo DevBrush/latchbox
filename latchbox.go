@@ -1,5 +1,5 @@
 // Copyright 2014 PariahVi (http://pariahvi.com).
-// LatchBox is licensed under a BSD License.
+// LatchBox is licensed under the BSD 2-Clause License.
 // Read LICENSE.txt for more license text.
 
 // A Console Based Password Management Program
@@ -32,7 +32,7 @@ import (
 const (
     // Protocol Version to save password file under.
     protocolVersion = 2
-    version = "v0.4.0.2"
+    version = "v1.0.3.0"
     title = "Latchbox " + version + " (Esc:QUIT"
     // uppercase, lowercase, digits and punctuation are used to generate
     // random passwords.
@@ -2850,8 +2850,8 @@ func makeConfig() {
     configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
         configDir + "passwords.lbp\""
     if _, err := os.Stat(configDir); err != nil {
-        os.MkdirAll(configDir, 0775)
-        ioutil.WriteFile(configDir + "config", []byte(configContent), 0664)
+        os.MkdirAll(configDir, 0755)
+        ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
     } else {
         content, err := ioutil.ReadFile(configDir + "config")
         if err != nil || len(content) == 0 {
@@ -2860,7 +2860,7 @@ func makeConfig() {
                 os.Rename(configDir + "config.txt", configDir + "config")
             } else {
                 ioutil.WriteFile(configDir + "config",
-                    []byte(configContent), 0664)
+                    []byte(configContent), 0644)
             }
         }
     }

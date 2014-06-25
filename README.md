@@ -1,12 +1,12 @@
 # LatchBox
 
-**_LatchBox is created by PariahVi ([http://pariahvi.com](http://pariahvi.com)) and is licensed under a BSD License.  Read LICENSE.txt for more license text._**
+**_LatchBox is created by PariahVi ([http://pariahvi.com](http://pariahvi.com)) and is licensed under the BSD 2-Clause License.  Read LICENSE.txt for more license text._**
 
 _A Console Based Password Management Program_
 
 ####Dependencies:
 
-* Go >= 1.1.1
+* Go >= 1.1.1 (Only if Building from Source)
 * xclip (For BSD and GNU/Linux)
 
 ####Build:
@@ -21,7 +21,7 @@ _A Console Based Password Management Program_
 
 * BSD
 * GNU/Linux
-* OSX (need someone to test)
+* OS X
 
 ####Protocol:
 
