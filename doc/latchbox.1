@@ -1,0 +1,24 @@
+.TH LatchBox 1
+.SH NAME
+LatchBox \- a console based password manager
+.SH SYNOPSIS
+.B latchbox
+[ \fIOPTION\fR ]...
+.SH DESCRIPTION
+.B LatchBox
+is a a free and open-source password manager that securely saves account information in an AES-256 encrypted file.
+The encrypted password file is locked using a master passphrase or a keyfile.
+The default password file is located inside of the ~/.latchbox/ directory.
+Backups can be turned off or on and the default password file location can be changed in the ~/.latchbox/config file.
+.SH OPTIONS
+.TP
+.BR \-c ", " \-\-cli
+Run in an ncurses environment (Current version will always run in an ncurses environment)
+.TP
+.BR \-h ", " \-\-help
+Print help message and exit
+.TP
+.BR \-\-version
+Print version information and exit
+.SH AUTHOR
+Vi Grey <development at pariahvi dot com>
