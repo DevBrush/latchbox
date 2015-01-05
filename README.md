@@ -1,21 +1,24 @@
 # LatchBox
 
-**_LatchBox is created by Vi Grey ([http://pariahvi.com](http://pariahvi.com)) and is licensed under the BSD 2-Clause License.  Read LICENSE.txt for more license text._**
+**_LatchBox is created by Vi Grey ([http://pariahvi.com](http://pariahvi.com)) <[development@pariahvi.com](mailto:development@pariahvi.com)> and is licensed under the BSD 2-Clause License.  Read LICENSE and THIRD-PARTY-LICENSES for more license text and information._**
 
 _A Console Based Password Management Program_
 
 ####Dependencies:
 
 * Go >= 1.1.1 (Only if Building from Source)
+
+####Optional Dependencies:
+
 * xclip (For BSD and GNU/Linux)
 
 ####Build:
 
-    $ go get github.com/PariahVi/latchbox
+    $ sudo sh INSTALL.sh
 
 ####Install:
 
-    $ go install github.com/PariahVi/latchbox
+    $ sudo sh UNINSTALL.sh
 
 ####Platforms:
 
