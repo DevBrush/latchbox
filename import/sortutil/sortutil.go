@@ -132,9 +132,9 @@ func CiAsc(slice interface{}) {
   if s.Getter == nil {
     s.Getter = SimpleGetter()
   }
-  s.itemType = s.Slice.Index(0).Type()
-  s.vals = s.Getter(s.Slice)
   if s.Slice.Len() >= 2 {
-      sort.Sort(stringInsensitiveAscending{s})
+    s.vals = s.Getter(s.Slice)
+    s.itemType = s.Slice.Index(0).Type()
+    sort.Sort(stringInsensitiveAscending{s})
   }
 }

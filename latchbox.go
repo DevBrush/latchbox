@@ -26,13 +26,14 @@
  */
 
 /* A Console Based Password Management Program */
+
 package main
 
 import (
-  "./import/clipboard"
-  "./import/bcrypt"
-  "./import/termbox-go"
-  "./import/sortutil"
+  "github.com/PariahVi/latchbox/import/bcrypt"
+  "github.com/PariahVi/latchbox/import/clipboard"
+  "github.com/PariahVi/latchbox/import/sortutil"
+  "github.com/PariahVi/latchbox/import/termbox-go"
   "crypto/aes"
   "crypto/cipher"
   "crypto/rand"
@@ -40,6 +41,7 @@ import (
   "crypto/sha512"
   "encoding/csv"
   "errors"
+  "fmt"
   "io/ioutil"
   "math"
   "math/big"
@@ -55,7 +57,8 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  version = "v1.0.3.1"
+  versionNum = "1.0.3.1"
+  version = "v" + versionNum
   title = "Latchbox " + version + " (Esc:QUIT"
   /*
    * uppercase, lowercase, digits and punctuation are used to generate
@@ -72,6 +75,8 @@ const (
 )
 
 var (
+  helpFlag bool
+  versionFlag bool
   contentCopied bool
   passChars []bool
   newValue []string
@@ -2638,15 +2643,15 @@ func optionsSettings() {
   locationTitle = "MORE OPTIONS"
   options = "Ctrl-C:BACK"
   bottomCaption = ""
-  contentString = "c:COPY        Copy Value of Entry\n\n" +
-    "v:VIEW        View Values of Entry\n\n" +
-    "n:NEW         Create a New Entry\n\n" +
-    "d:DELETE      Delete Entry\n\n" +
-    "e:EDIT        Edit Value of Entry\n\n" +
+  contentString = "c:COPY          Copy Value of Entry\n\n" +
+    "v:VIEW          View Values of Entry\n\n" +
+    "n:NEW           Create a New Entry\n\n" +
+    "d:DELETE        Delete Entry\n\n" +
+    "e:EDIT          Edit Value of Entry\n\n" +
     "p:PASSPHRASE    Change Passphrase/Keyfile of Password File\n\n" +
-    "i:IMPORT      Import Entries from .CSV File\n\n" +
-    "x:EXPORT      Export Entries to a .CSV File\n\n" +
-    "l:LOCK        Lock Password File"
+    "i:IMPORT        Import Entries from .CSV File\n\n" +
+    "x:EXPORT        Export Entries to a .CSV File\n\n" +
+    "l:LOCK          Lock Password File"
 }
 
 /*
@@ -2973,179 +2978,217 @@ func main() {
   if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
     panic("Unsupported Operating System")
   }
-  /* If config file doesn't exist, make one */
-  makeConfig()
-  configParse()
-  err := termbox.Init()
-  if err != nil {
-    panic(err)
-  }
-  defer termbox.Close()
-  termbox.SetInputMode(termbox.InputEsc & termbox.InputAlt)
-  event_queue := make(chan termbox.Event)
-  go func() {
-    for {
-      event_queue <- termbox.PollEvent()
-    }
-  }()
-loop:
-  for {
-    value = ""
-    /* Used for drawing menus. */
-    if menu == "Welcome" {
-      welcomeSettings()
-    } else if menu == "New Password" {
-      newPSettings()
-    } else if menu == "Secure Password" {
-      securePSettings()
-    } else if menu == "Open Password" {
-      openPSettings()
-    } else if menu == "Unlock Password" {
-      unlockPSettings()
-    } else if menu == "Keyfile" {
-      keyfileSettings()
-    } else if menu == "Main Menu" {
-      mainSettings()
-    } else if menu == "Copy" {
-      copyESettings()
-    } else if menu == "Copy Content" {
-      copyContentSettings()
-    } else if menu == "View" {
-      viewESettings()
-    } else if menu == "View Content" {
-      viewContentSettings()
-    } else if menu == "New" {
-      newESettings()
-    } else if menu == "Delete" {
-      deleteESettings()
-    } else if menu == "Delete Content" {
-      deleteContentSettings()
-    } else if menu == "Edit" {
-      editESettings()
-    } else if menu == "Edit Content" {
-      editContentSettings()
-    } else if menu == "Change Passphrase" {
-      cPassphraseSettings()
-    } else if menu == "Import" {
-      importSettings()
-    } else if menu == "Export" {
-      exportSettings()
-    } else if menu == "Passphrase" {
-      passphraseSettings()
-    } else if menu == "Options" {
-      optionsSettings()
-    }
-    draw()
-    switch ev := termbox.PollEvent(); ev.Type {
-    case termbox.EventKey:
-      switch ev.Key {
-      /* If Esc key is pressed, quit program. */
-      case termbox.KeyEsc:
-        break loop
-      /*
-       * If Ctrl-C is pressed when allowed, go back one menu and
-       * reset things and possibly add contentString messages for
-       * the main body of the termbox instance.
-       */
-      case termbox.KeyCtrlC:
-        if ctrlC {
-          tmpPassphrase = ""
-          omit = true
-          passChars = make([]bool, 0)
-          newValue = make([]string, 0)
-          passLen = 0
-          contentString = ""
-          nameGroupsList := nameGroups()
-          if menu == "Copy Content" {
-            contentCopied = false
-            clipboard.WriteAll("")
-          } else if menu == "Delete Content" {
-            contentString = nameGroupsList[entryNumber - 1] +
-              " Was NOT Deleted"
-          } else if menu == "Export" {
-            csvFile = ""
-            contentString = "Content was NOT Exported!"
-          } else if menu == "Passphrase" {
-            contentString = "Your Passphrase/Keyfile Was NOT" +
-              " Changed!"
-          }
-          subtractFromMenu(1)
-          if menu == "Secure Password" || menu == "Passphrase" {
-            if menu == "Passphrase" {
-              contentString = "Your Passphrase/Keyfile Was" +
-                "NOT Changed!"
-            }
-            subtractFromMenu(1)
-          }
-          bottomCaption = ""
-          contentExtra = ""
-          key1 = ""
-          entryData = ""
-          step = make([]bool, 13)
-          edit_box.text = make([]byte, 0)
-          edit_box.cursor_voffset = len(bottomCaption)
-          edit_box.cursor_boffset = len(bottomCaption)
-        }
-      /*
-       * If up or down keys pressed, make the values keyUpPresed or
-       * keyDownPressed true for processing in the drawing phase.
-       */
-      case termbox.KeyArrowUp:
-        keyUpPressed = true
-      case termbox.KeyArrowDown:
-        keyDownPressed = true
-      default:
-        /* Used for actions of when keys are pressed in menus. */
-        if menu == "Welcome" {
-          welcomeOptions(ev)
-        } else if menu == "New Password" {
-          newPOptions(ev)
-        } else if menu == "Secure Password" {
-          securePOptions(ev)
-        } else if menu == "Open Password" {
-          openPOptions(ev)
-        } else if menu == "Unlock Password" {
-          unlockPOptions(ev)
-        } else if menu == "Keyfile" {
-          keyfileOptions(ev)
-        } else if menu == "Main Menu" {
-          mainOptions(ev)
-        } else if menu == "Copy" {
-          copyEOptions(ev)
-        } else if menu == "Copy Content" {
-          copyContentOptions(ev)
-        } else if menu == "View" {
-          viewEOptions(ev)
-        } else if menu == "View Content" {
-          viewContentOptions(ev)
-        } else if menu == "New" {
-          newEOptions(ev)
-        } else if menu == "Delete" {
-          deleteEOptions(ev)
-        } else if menu == "Delete Content" {
-          deleteContentOptions(ev)
-        } else if menu == "Edit" {
-          editEOptions(ev)
-        } else if menu == "Edit Content" {
-          editContentOptions(ev)
-        } else if menu == "Import" {
-          importOptions(ev)
-        } else if menu == "Export" {
-          exportOptions(ev)
-        } else if menu == "Change Passphrase" {
-          cPassphraseOptions(ev)
-        } else if menu == "Passphrase" {
-          passphraseOptions(ev)
+  for i := 1; i < len(os.Args); i++ {
+    if len(os.Args[i]) > 2 && strings.Index(os.Args[i], "--") == 0 {
+      if os.Args[i][2:] == "help" {
+        helpFlag = true;
+      } else if os.Args[i][2:] == "version" {
+        versionFlag = true;
+      } else if os.Args[i][2:] != "" {
+        fmt.Printf("latchbox: unrecognized option '%s'\nTry 'latchbox " +
+                   "--help' for more information.\n", string(os.Args[i]))
+        os.Exit(1)
+      }
+    } else if len(os.Args[i]) > 1 && os.Args[i][0] == '-' &&
+        strings.Index(os.Args[i], "--") != 0 {
+      for x := 1; x < len(os.Args[i]); x++ {
+        if os.Args[i][x] == 'h' {
+          helpFlag = true;
+        } else {
+          fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox " +
+                     "--help' for more information.\n", string(os.Args[i][x]))
+          os.Exit(1)
         }
       }
+    } else if strings.Index("--", os.Args[i]) != 0 {
+      fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox" +
+                 "--help' for more information.\n", string(os.Args[i]))
+      os.Exit(1)
     }
-    draw()
   }
-  /*
-   * If something was copied in the Copy menu and Esc is pressed, clear
-   * the clipboard for security.
-   */
-  if contentCopied {
-    clipboard.WriteAll("")
+  if helpFlag || versionFlag {
+    if helpFlag {
+      fmt.Printf("Usage: latchbox [ OPTIONS ]...\n\nOptions:\n" +
+                 "  -h, --help       Print Help (this message) and exit\n" +
+                 "      --version    Print version information and exit\n")
+    } else {
+      fmt.Printf("LatchBox %s\n", versionNum)
+    }
+  } else {
+    /* If config file doesn't exist, make one */
+    makeConfig()
+    configParse()
+    err := termbox.Init()
+    if err != nil {
+      panic(err)
+    }
+    defer termbox.Close()
+    termbox.SetInputMode(termbox.InputEsc & termbox.InputAlt)
+    event_queue := make(chan termbox.Event)
+    go func() {
+      for {
+        event_queue <- termbox.PollEvent()
+      }
+    }()
+  loop:
+    for {
+      value = ""
+      /* Used for drawing menus. */
+      if menu == "Welcome" {
+        welcomeSettings()
+      } else if menu == "New Password" {
+        newPSettings()
+      } else if menu == "Secure Password" {
+        securePSettings()
+      } else if menu == "Open Password" {
+        openPSettings()
+      } else if menu == "Unlock Password" {
+        unlockPSettings()
+      } else if menu == "Keyfile" {
+        keyfileSettings()
+      } else if menu == "Main Menu" {
+        mainSettings()
+      } else if menu == "Copy" {
+        copyESettings()
+      } else if menu == "Copy Content" {
+        copyContentSettings()
+      } else if menu == "View" {
+        viewESettings()
+      } else if menu == "View Content" {
+        viewContentSettings()
+      } else if menu == "New" {
+        newESettings()
+      } else if menu == "Delete" {
+        deleteESettings()
+      } else if menu == "Delete Content" {
+        deleteContentSettings()
+      } else if menu == "Edit" {
+        editESettings()
+      } else if menu == "Edit Content" {
+        editContentSettings()
+      } else if menu == "Change Passphrase" {
+        cPassphraseSettings()
+      } else if menu == "Import" {
+        importSettings()
+      } else if menu == "Export" {
+        exportSettings()
+      } else if menu == "Passphrase" {
+        passphraseSettings()
+      } else if menu == "Options" {
+        optionsSettings()
+      }
+      draw()
+      switch ev := termbox.PollEvent(); ev.Type {
+      case termbox.EventKey:
+        switch ev.Key {
+        /* If Esc key is pressed, quit program. */
+        case termbox.KeyEsc:
+          break loop
+        /*
+         * If Ctrl-C is pressed when allowed, go back one menu and
+         * reset things and possibly add contentString messages for
+         * the main body of the termbox instance.
+         */
+        case termbox.KeyCtrlC:
+          if ctrlC {
+            tmpPassphrase = ""
+            omit = true
+            passChars = make([]bool, 0)
+            newValue = make([]string, 0)
+            passLen = 0
+            contentString = ""
+            nameGroupsList := nameGroups()
+            if menu == "Copy Content" {
+              contentCopied = false
+              clipboard.WriteAll("")
+            } else if menu == "Delete Content" {
+              contentString = nameGroupsList[entryNumber - 1] +
+                " Was NOT Deleted"
+            } else if menu == "Export" {
+              csvFile = ""
+              contentString = "Content was NOT Exported!"
+            } else if menu == "Passphrase" {
+              contentString = "Your Passphrase/Keyfile Was NOT" +
+                " Changed!"
+            }
+            subtractFromMenu(1)
+            if menu == "Secure Password" || menu == "Passphrase" {
+              if menu == "Passphrase" {
+                contentString = "Your Passphrase/Keyfile Was" +
+                  "NOT Changed!"
+              }
+              subtractFromMenu(1)
+            }
+            bottomCaption = ""
+            contentExtra = ""
+            key1 = ""
+            entryData = ""
+            step = make([]bool, 13)
+            edit_box.text = make([]byte, 0)
+            edit_box.cursor_voffset = len(bottomCaption)
+            edit_box.cursor_boffset = len(bottomCaption)
+          }
+        /*
+         * If up or down keys pressed, make the values keyUpPresed or
+         * keyDownPressed true for processing in the drawing phase.
+         */
+        case termbox.KeyArrowUp:
+          keyUpPressed = true
+        case termbox.KeyArrowDown:
+          keyDownPressed = true
+        default:
+          /* Used for actions of when keys are pressed in menus. */
+          if menu == "Welcome" {
+            welcomeOptions(ev)
+          } else if menu == "New Password" {
+            newPOptions(ev)
+          } else if menu == "Secure Password" {
+            securePOptions(ev)
+          } else if menu == "Open Password" {
+            openPOptions(ev)
+          } else if menu == "Unlock Password" {
+            unlockPOptions(ev)
+          } else if menu == "Keyfile" {
+            keyfileOptions(ev)
+          } else if menu == "Main Menu" {
+            mainOptions(ev)
+          } else if menu == "Copy" {
+            copyEOptions(ev)
+          } else if menu == "Copy Content" {
+            copyContentOptions(ev)
+          } else if menu == "View" {
+            viewEOptions(ev)
+          } else if menu == "View Content" {
+            viewContentOptions(ev)
+          } else if menu == "New" {
+            newEOptions(ev)
+          } else if menu == "Delete" {
+            deleteEOptions(ev)
+          } else if menu == "Delete Content" {
+            deleteContentOptions(ev)
+          } else if menu == "Edit" {
+            editEOptions(ev)
+          } else if menu == "Edit Content" {
+            editContentOptions(ev)
+          } else if menu == "Import" {
+            importOptions(ev)
+          } else if menu == "Export" {
+            exportOptions(ev)
+          } else if menu == "Change Passphrase" {
+            cPassphraseOptions(ev)
+          } else if menu == "Passphrase" {
+            passphraseOptions(ev)
+          }
+        }
+      }
+      draw()
+    }
+    /*
+     * If something was copied in the Copy menu and Esc is pressed, clear
+     * the clipboard for security.
+     */
+    if contentCopied {
+      clipboard.WriteAll("")
+    }
   }
 }
