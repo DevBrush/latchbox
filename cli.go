@@ -167,6 +167,14 @@ func multiLine(valueString string, w int) []string {
   valueSplit := strings.Split(valueString, " ")
   if len(valueSplit) > 0 {
     for x := range valueSplit {
+      valueSplitTmp := valueSplit[x]
+      valueSplit[x] = ""
+      for _, runeValue := range valueSplitTmp {
+        valueSplit[x] += string(runeValue)
+        if runewidth.RuneWidth(runeValue) == 2 {
+          valueSplit[x] += " "
+        }
+      }
       if valueSplit[x] == "\n" {
         valueSlice = append(valueSlice, valueBuffer)
         valueBuffer = ""
