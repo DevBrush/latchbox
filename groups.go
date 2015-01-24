@@ -118,3 +118,15 @@ func groupHeader() []byte {
   return groupData
 }
 
+/* Return true if there are duplicate values in nameGroupList. */
+func duplicateNameGroups(nameGroupsList []string) bool {
+  dup := make(map[string]bool)
+  for _, x := range nameGroupsList {
+    if !dup[x] {
+      dup[x] = true
+    } else {
+      return true
+    }
+  }
+  return false
+}

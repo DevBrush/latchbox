@@ -30,7 +30,6 @@
 package main
 
 import (
-  "crypto/rand"
   "math/big"
   "runtime"
   "strconv"
@@ -115,14 +114,6 @@ var (
   omit bool
   csvFile string
 )
-
-/* Get a random int between 0 and number. */
-func getRandNumber(number int64) int {
-  randNumber, _ := rand.Int(rand.Reader, big.NewInt(number))
-  randString := randNumber.String()
-  randInt, _ := strconv.Atoi(randString)
-  return randInt
-}
 
 /*
  * Resets variables and brings the user back to the Welcome menu to either

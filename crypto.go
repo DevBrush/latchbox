@@ -96,3 +96,66 @@ func decrypt(ciphertext, key []byte) []byte {
   plaintext = plaintext[:len(plaintext) - padding]
   return plaintext
 }
+
+/* Get a random int between 0 and number. */
+func getRandNumber(number int64) int {
+  randNumber, _ := rand.Int(rand.Reader, big.NewInt(number))
+  randString := randNumber.String()
+  randInt, _ := strconv.Atoi(randString)
+  return randInt
+}
+
+/*
+ * Generate a random password with criteria ([uppercase, lowercase, digits
+ * punctuation] (ulds), and lenth (pLen)).  Needs at least 4 for the
+ * generated password length.  If NO was used for all criteria in ulds, a
+ * password will be generated with only lowercase characters.  The password
+ * is guaranteed to have at least one of every type of character allowed
+ * under ulds.
+ */
+func genPass (pLen uint16, ulds []bool) string {
+  var password []byte
+  var passwordString string
+  if ulds[0] {
+    passwordString += uppercase
+  }
+  if ulds[1] {
+    passwordString += lowercase
+  }
+  if ulds[2] {
+    passwordString += digits
+  }
+  if ulds[3] {
+    passwordString += punctuation
+  }
+  if passwordString == "" {
+    passwordString += lowercase
+  }
+  for x := 0; uint16(x) < pLen; x++ {
+    letter := getRandNumber(int64(len(passwordString)))
+    password = append(password, passwordString[letter])
+  }
+  var randomValues []uint16
+  for x := 0; x < 4; x++ {
+    position := getRandNumber(int64(pLen))
+    var bad bool
+    for y := range randomValues {
+      if randomValues[y] == uint16(position) {
+        bad = true
+      }
+    }
+    if bad {
+      x--
+    } else {
+      randomValues = append(randomValues, uint16(position))
+    }
+  }
+  characters := []string{uppercase, lowercase, digits, punctuation}
+  for x := 0; x < 4; x++ {
+    if ulds[x] {
+      z := getRandNumber(int64(len(characters[x])))
+      password[randomValues[x]] = characters[x][z]
+    }
+  }
+  return string(password)
+}

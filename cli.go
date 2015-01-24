@@ -1804,74 +1804,6 @@ func optionsSettings() {
     "l:LOCK          Lock Password File"
 }
 
-/*
- * Generate a random password with criteria ([uppercase, lowercase, digits
- * punctuation] (ulds), and lenth (pLen)).  Needs at least 4 for the
- * generated password length.  If NO was used for all criteria in ulds, a
- * password will be generated with only lowercase characters.  The password
- * is guaranteed to have at least one of every type of character allowed
- * under ulds.
- */
-func genPass (pLen uint16, ulds []bool) string {
-  var password []byte
-  var passwordString string
-  if ulds[0] {
-    passwordString += uppercase
-  }
-  if ulds[1] {
-    passwordString += lowercase
-  }
-  if ulds[2] {
-    passwordString += digits
-  }
-  if ulds[3] {
-    passwordString += punctuation
-  }
-  if passwordString == "" {
-    passwordString += lowercase
-  }
-  for x := 0; uint16(x) < pLen; x++ {
-    letter := getRandNumber(int64(len(passwordString)))
-    password = append(password, passwordString[letter])
-  }
-  var randomValues []uint16
-  for x := 0; x < 4; x++ {
-    position := getRandNumber(int64(pLen))
-    var bad bool
-    for y := range randomValues {
-      if randomValues[y] == uint16(position) {
-        bad = true
-      }
-    }
-    if bad {
-      x--
-    } else {
-      randomValues = append(randomValues, uint16(position))
-    }
-  }
-  characters := []string{uppercase, lowercase, digits, punctuation}
-  for x := 0; x < 4; x++ {
-    if ulds[x] {
-      z := getRandNumber(int64(len(characters[x])))
-      password[randomValues[x]] = characters[x][z]
-    }
-  }
-  return string(password)
-}
-
-/* Return true if there are duplicate values in nameGroupList. */
-func duplicateNameGroups(nameGroupsList []string) bool {
-  dup := make(map[string]bool)
-  for _, x := range nameGroupsList {
-    if !dup[x] {
-      dup[x] = true
-    } else {
-      return true
-    }
-  }
-  return false
-}
-
 func fill(x, y, w, h int, cell termbox.Cell) {
   for ly := 0; ly < h; ly++ {
     for lx := 0; lx < w; lx++ {
@@ -1879,6 +1811,8 @@ func fill(x, y, w, h int, cell termbox.Cell) {
     }
   }
 }
+
+/* Start TODO
 
 func voffset_coffset(text []byte, boffset int) (voffset, coffset int) {
   text = text[:boffset]
@@ -1929,7 +1863,7 @@ func (eb *EditBox) Layout(x, y, w, h int) {
   const coldef = termbox.ColorDefault
   fill(x, y, w, h, termbox.Cell{Ch: ' '})
   t := make([]byte, 0)
-  /* Input * characters if passwordInput is true */
+  /* Input * characters if passwordInput is true / <----- Add comment end
   if passwordInput {
     for _ = range string(eb.text) {
       t = append(t, '*')
@@ -1982,11 +1916,19 @@ func (eb *EditBox) MoveCursorTo(boffset int) {
 }
 
 func (eb *EditBox) RuneUnderCursor() (rune, int) {
-  return utf8.DecodeRune(eb.text[eb.cursor_boffset:])
+  rune_char, size := utf8.DecodeRune(eb.text[eb.cursor_boffset:])
+  if runewidth.RuneWidth(rune_char) == 2 {
+    size += 1
+  }
+  return rune_char, size
 }
 
 func (eb *EditBox) RuneBeforeCursor() (rune, int) {
-  return utf8.DecodeLastRune(eb.text[:eb.cursor_boffset])
+  rune_char, size := utf8.DecodeLastRune(eb.text[:eb.cursor_boffset])
+  if runewidth.RuneWidth(rune_char) == 2 {
+    size += 1
+  }
+  return rune_char, size
 }
 
 func (eb *EditBox) MoveCursorOneRuneBackward() {
@@ -2009,7 +1951,6 @@ func (eb *EditBox) DeleteRuneBackward() {
   if eb.cursor_boffset == 0 {
     return
   }
-
   eb.MoveCursorOneRuneBackward()
   _, size := eb.RuneUnderCursor()
   eb.text = byte_slice_remove(eb.text, eb.cursor_boffset,
@@ -2031,6 +1972,9 @@ func (eb *EditBox) InsertRune(r rune) {
   eb.text = byte_slice_insert(eb.text, eb.cursor_boffset, buf[:n2])
   eb.MoveCursorOneRuneForward()
 }
+
+ * End of TODO
+ */
 
 func (eb *EditBox) CursorX() int {
   return eb.cursor_voffset - eb.line_voffset

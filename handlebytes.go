@@ -92,4 +92,3 @@ func getLen(byteString []byte) int {
   }
   return int(solution)
 }
-
