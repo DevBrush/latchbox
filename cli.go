@@ -1917,17 +1917,11 @@ func (eb *EditBox) MoveCursorTo(boffset int) {
 
 func (eb *EditBox) RuneUnderCursor() (rune, int) {
   rune_char, size := utf8.DecodeRune(eb.text[eb.cursor_boffset:])
-  if runewidth.RuneWidth(rune_char) == 2 {
-    size += 1
-  }
   return rune_char, size
 }
 
 func (eb *EditBox) RuneBeforeCursor() (rune, int) {
   rune_char, size := utf8.DecodeLastRune(eb.text[:eb.cursor_boffset])
-  if runewidth.RuneWidth(rune_char) == 2 {
-    size += 1
-  }
   return rune_char, size
 }
 
