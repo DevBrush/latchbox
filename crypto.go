@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, PariahVi
+ * Copyright (C) 2014-2015, Vi Grey
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@ import (
   "crypto/cipher"
   "crypto/rand"
   "crypto/sha256"
+  "math/big"
+  "strconv"
 )
 
 /*

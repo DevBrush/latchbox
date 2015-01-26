@@ -25,50 +25,20 @@
  * SUCH DAMAGE.
  */
 
-/* A Console Based Password Management Program */
+/* Handles command line flags */
 
 package main
 
 import (
-  "math"
-  "time"
+  "fmt"
 )
 
-/*
- * Get YYYY-MM-DD hh:mm:ss timestamp out of 8 bytes (protocol version > 1)
- * or 4 bytes (protocol version 1).
- */
-func getTime(packet []byte, entryList *[]string, pointer *int,
-    pFileVersion uint16, err *bool) {
-  var timeLen int
-  if pFileVersion != 1 && len(packet) - *pointer >= 8 && !*err {
-    timeLen = 8
-  } else if pFileVersion == 1 && len(packet) - *pointer >= 4 &&
-      !*err {
-    timeLen = 4
-  }
-  if timeLen > 0 {
-    timeByteString := string(packet[*pointer: *pointer + timeLen])
-    var cInt float64
-    for x := range timeByteString {
-      cInt += float64(timeByteString[x]) * math.Pow(256, float64(timeLen -
-         1 - x))
-    }
-    timestamp := time.Unix(int64(cInt), 0).Format(timeLayout)
-    *entryList = append(*entryList, timestamp)
-  } else {
-    *err = true
-  }
-  if pFileVersion != 1 {
-    *pointer += 4
-  }
-  *pointer += 4
+func helpPrint() {
+  fmt.Printf("Usage: latchbox [ OPTIONS ]...\n\nOptions:\n" +
+             "  -h, --help       Print Help (this message) and exit\n" +
+             "      --version    Print version information and exit\n")
 }
 
-/* Convert YYYY-MM-DD hh:mm:ss timestamp to local Unix time. */
-func timeToUnix(value string) int64 {
-  local, _ := time.LoadLocation("Local")
-  toTime, _ := time.ParseInLocation(timeLayout, value, local)
-  return toTime.Unix()
+func versionPrint() {
+  fmt.Printf("LatchBox %s\n", versionNum)
 }
-

@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, PariahVi
+ * Copyright (C) 2014-2015, Vi Grey
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ import (
 )
 
 func writeData() error {
+  tildeHome(&fPath)
   groupMap()
   var dataList [][]byte
   for x := range names {
@@ -152,6 +153,7 @@ func makeConfig() {
  * the password file with the added content.
  */
 func importCSV(location string) error {
+  tildeHome(&location);
   csvLocation, err := os.Open(location)
   if err != nil {
     contentString = "Cannot Open CSV File in " + location
@@ -267,7 +269,7 @@ func importCSV(location string) error {
               if group[0] == ' ' || group[0] =='/' ||
                   group[len(group) - 1] == '/' ||
                   inString(group, "//") ||
-                  inString(group, "/") {
+                  inString(group, "/ ") {
                 contentString = "Invalid Group Name " + group
                 return errors.New("Invalid Group Name " + group)
               }
@@ -352,6 +354,7 @@ func importCSV(location string) error {
  * KeePass.
  */
 func exportCSV(location string) error {
+  tildeHome(&location);
   csvLocation, err := os.Create(location)
   if err != nil {
     return err
@@ -396,4 +399,14 @@ func exportCSV(location string) error {
   }
   csvLocation.Close()
   return nil
+}
+
+func tildeHome(path *string) {
+  location := *path
+  if len(location) > 1 {
+    if location[:2] == "~/" {
+      usr, _ := user.Current()
+      *path = usr.HomeDir + location[1:]
+    }
+  }
 }

@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, PariahVi
+ * Copyright (C) 2014-2015, Vi Grey
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,15 +30,16 @@
 package main
 
 import (
-  "math/big"
+  "fmt"
+  "os"
   "runtime"
-  "strconv"
+  "strings"
 )
 
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "1.1.0.0"
+  versionNum = "1.1.3.0"
   version = "v" + versionNum
   title = "Latchbox " + version + " (Esc:QUIT"
   /*
@@ -157,5 +158,41 @@ func main() {
   if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
     panic("Unsupported Operating System")
   }
-  cli()
+  for i := 1; i < len(os.Args); i++ {
+    if len(os.Args[i]) > 2 && strings.Index(os.Args[i], "--") == 0 {
+      if os.Args[i][2:] == "help" {
+        helpFlag = true;
+      } else if os.Args[i][2:] == "version" {
+        versionFlag = true;
+      } else if os.Args[i][2:] != "" {
+        fmt.Printf("latchbox: unrecognized option '%s'\nTry 'latchbox " +
+                   "--help' for more information.\n", string(os.Args[i]))
+        os.Exit(1)
+      }
+    } else if len(os.Args[i]) > 1 && os.Args[i][0] == '-' &&
+        strings.Index(os.Args[i], "--") != 0 {
+      for x := 1; x < len(os.Args[i]); x++ {
+        if os.Args[i][x] == 'h' {
+          helpFlag = true;
+        } else {
+          fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox " +
+                     "--help' for more information.\n", string(os.Args[i][x]))
+          os.Exit(1)
+        }
+      }
+    } else if strings.Index("--", os.Args[i]) != 0 {
+      fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox" +
+                 "--help' for more information.\n", string(os.Args[i]))
+      os.Exit(1)
+    }
+  }
+  if helpFlag || versionFlag {
+    if helpFlag {
+      helpPrint()
+    } else {
+      versionPrint()
+    }
+  } else {
+    cli()
+  }
 }
