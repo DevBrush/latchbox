@@ -1,34 +1,77 @@
 # LatchBox
 
-**_LatchBox is created by Vi Grey ([http://pariahvi.com](http://pariahvi.com)) <[development@pariahvi.com](mailto:development@pariahvi.com)> and is licensed under the BSD 2-Clause License.  Read LICENSE and THIRD-PARTY-LICENSES for more license text and information._**
-
 _A Console Based Password Management Program_
 
-####Dependencies:
+**_LatchBox is created by Vi Grey ([http://pariahvi.com](http://pariahvi.com)) <[development@pariahvi.com](mailto:development@pariahvi.com)> and is licensed under the BSD 2-Clause License.  Read LICENSE and THIRD-PARTY-LICENSES for more license text and information._**
 
-* Go >= 1.1.1 (Only if Building from Source)
+#### Description:
+LatchBox is a free and open-source password manager that saves account information in an AES-256 encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase or a keyfile.
 
-####Optional Dependencies:
+#### Platforms:
+- BSD
+- GNU/Linux
+- OS X
 
-* xclip (For BSD and GNU/Linux)
+#### Build Dependencies:
+- Go >= 1.1.1
 
-####Build:
+#### Optional Dependencies:
+- xclip (For BSD and GNU/Linux)
 
-    $ sudo sh INSTALL.sh
+#### Install:
+    $ make
+    $ sudo make install
 
-####Install:
+#### Uninstall:
+    $ sudo make uninstall
 
-    $ sudo sh UNINSTALL.sh
+#### Usage:
+    $ latchbox -h
+    Usage: latchbox [ OPTIONS ]...
 
-####Platforms:
+    Options:
+      -h, --help       Print Help (this message) and exit
+          --version    Print version information and exit
 
-* BSD
-* GNU/Linux
-* OS X
+#### Import:
+You can import .csv files made from LastPass or KeePass to your password file in LatchBox.
 
-####Protocol:
+Expected csv labels (case insensitive) for the different entries are:
 
-* Version 2:
+- *name* or *account* for **NAME**
+- *username* or *login name* for **USERNAME**
+- *password* for **PASSWORD**
+- *url* or *web site* for **URL**
+- *grouping* or *group* for **GROUP**
+- *extra* or *comments* for **COMMENT**
+
+These labels can be in any order and some can be excluded as long as *name* or *account* is included.  Quotation marks are allowed every csv field as well.
+
+To convert from other formats (Mostly LastPass and KeePass) and prevent conflicts, the **NAME** entries will replace **/** symbols with **\** symbols and the **GROUP** entries will swap both **/** symbols and **\** symbols.
+
+#### Export:
+Before you export a csv file of your password data, you will need to input your passphrase/keyfile combination.  After that, a csv file will be made in the chosen path with the csv labels in the order of:
+
+name,username,password,url,grouping,extra
+
+where grouping is the group and extra is the comment.  This is the exact same layout LastPass uses, so if you want to export to KeePass, it is recommended that you import as a LastPass .csv file.
+
+Just like importing, **NAME** entries will replace **/** symbols with **\** symbols and **GROUP** entries will swap both the **/** symbols and the **\** symbols.  This is to make sure groups are separated by **\** symbols like hello\world, which LastPass and KeePass understand, rather than hello/world, which is LatchBox syntax.
+
+#### Config File:
+After starting LatchBox, a config file and latchbox folder will be created.  That folder will be at `$HOME/.latchbox/`.  The folder will contain a file called `config`.  You can edit the config file by changing the contents inside of the quotes.
+
+To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure makeBackups is set to "true" (case-insensitive).
+
+To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
+
+#### Security:
+LatchBox uses AES256 encryption to encrypt the password file.  It also uses bcrypt with a cost value of 12 followed by SHA256 to create the 256-bit key from your passphrase to encrypt the data.  If you include a keyfile for your passphrase, the SHA512 hash of the keyfile will be appended to the passphrase before the full passphrase is hashed.  The keyfile is a file that can be used to encrypt a password file and can be any file of any content size.  The first 29 bytes of the saved password file are the salt to hash the passphrase.  The next 16 bytes of the saved password file are the AES initialization vector, which acts much like a salt to make the encryption much harder to predict.  The final 64 bytes are a SHA512 hash of the unencrypted contents of the file to use as a checksum to see if your passphrase was correct to decrypt the password file.  Anything between the AES initialization vector and the final 64 bytes is the encrypted password file content, which will be a multiple of 16 bytes and at least 16 bytes long due to padding during the encryption process.
+
+Every time the password file is overwritten by LatchBox, a new salt is generated and hashed with the passphrase to create a new encryption key.  The password file is overwritten after editing an entry, making a new entry or changing the password file passphrase.  Creating a new password file using NEW at the beginning will automatically create an encrypted password file.
+
+#### Protocol:
+- Version 2:
 
     The first 2 bytes represent the version number.  The next 4 bytes represent the length of the Group Header packet.  Inside the Group Header packet, you will have group packets, each being for a different group.  Each group packet has 2 bytes for the length of the rest of that group packet, the group name, and a 2 byte group pointer.
 
@@ -74,7 +117,7 @@ _A Console Based Password Management Program_
             MODIFIED: 2014-12-31 23:59:59
             COMMENT: CommentExample3
 
-* Version 1:
+- Version 1:
 
     The first 2 bytes represent the version number.  The next 4 bytes represent the length of the Group Header packet.  Inside the Group Header packet, you will have group packets, each being for a different group.  Each group packet has 2 bytes for the length of the rest of that group packet, the group name, and a 2 byte group pointer.
 
@@ -122,44 +165,3 @@ _A Console Based Password Management Program_
             CREATED: 2014-01-01 00:00:00
             MODIFIED: 2014-12-31 23:59:59
             COMMENT: CommentExample3
-
-####Config File:
-
-After starting LatchBox, a config file and latchbox folder will be created.  That folder will be at `$HOME/.latchbox/`.  The folder will contain a file called `config`.  You can edit the config file by changing the contents inside of the quotes.
-
-To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure makeBackups is set to "true" (case-insensitive).
-
-To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
-
-####Import:
-
-You can import .csv files made from LastPass or KeePass to your password file in LatchBox.
-
-Expected csv labels (case insensitive) for the different entries are:
-
-* *name* or *account* for **NAME**
-* *username* or *login name* for **USERNAME**
-* *password* for **PASSWORD**
-* *url* or *web site* for **URL**
-* *grouping* or *group* for **GROUP**
-* *extra* or *comments* for **COMMENT**
-
-These labels can be in any order and some can be excluded as long as *name* or *account* is included.  Quotation marks are allowed every csv field as well.
-
-To convert from other formats (Mostly LastPass and KeePass) and prevent conflicts, the **NAME** entries will replace **/** symbols with **\** symbols and the **GROUP** entries will swap both **/** symbols and **\** symbols.
-
-####Export:
-
-Before you export a csv file of your password data, you will need to input your passphrase/keyfile combination.  After that, a csv file will be made in the chosen path with the csv labels in the order of:
-
-name,username,password,url,grouping,extra
-
-where grouping is the group and extra is the comment.  This is the exact same layout LastPass uses, so if you want to export to KeePass, it is recommended that you import as a LastPass .csv file.
-
-Just like importing, **NAME** entries will replace **/** symbols with **\** symbols and **GROUP** entries will swap both the **/** symbols and the **\** symbols.  This is to make sure groups are separated by **\** symbols like hello\world, which LastPass and KeePass understand, rather than hello/world, which is LatchBox syntax.
-
-####Security:
-
-LatchBox uses AES256 encryption to encrypt the password file.  It also uses bcrypt with a cost value of 12 followed by SHA256 to create the 256-bit key from your passphrase to encrypt the data.  If you include a keyfile for your passphrase, the SHA512 hash of the keyfile will be appended to the passphrase before the full passphrase is hashed.  The keyfile is a file that can be used to encrypt a password file and can be any file of any content size.  The first 29 bytes of the saved password file are the salt to hash the passphrase.  The next 16 bytes of the saved password file are the AES initialization vector, which acts much like a salt to make the encryption much harder to predict.  The final 64 bytes are a SHA512 hash of the unencrypted contents of the file to use as a checksum to see if your passphrase was correct to decrypt the password file.  Anything between the AES initialization vector and the final 64 bytes is the encrypted password file content, which will be a multiple of 16 bytes and at least 16 bytes long due to padding during the encryption process.
-
-Every time the password file is overwritten by LatchBox, a new salt is generated and hashed with the passphrase to create a new encryption key.  The password file is overwritten after editing an entry, making a new entry or changing the password file passphrase.  Creating a new password file using NEW at the beginning will automatically create an encrypted password file.
