@@ -39,7 +39,7 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "1.1.3.0"
+  versionNum = "1.1.3.1"
   version = "v" + versionNum
   title = "Latchbox " + version + " (Esc:QUIT"
   /*
