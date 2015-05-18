@@ -24,7 +24,7 @@
 # SUCH DAMAGE.
 
 PKG_NAME := latchbox
-TMPFILE := /tmp/$(PKG_NAME)/src/github.com/PariahVi/$(PKG_NAME)
+TMPFILE := /tmp/$(PKG_NAME)/src/github.com/DevBrush/$(PKG_NAME)
 GOPATH := /tmp/$(PKG_NAME)
 export GOPATH
 
@@ -32,7 +32,7 @@ all:
 	mkdir -p $(TMPFILE)
 	cp -r * $(TMPFILE)
 	mv $(TMPFILE)/src/* $(TMPFILE)/
-	go install github.com/PariahVi/$(PKG_NAME)
+	go install github.com/DevBrush/$(PKG_NAME)
 	mkdir -p bin
 	cp $(GOPATH)/bin/$(PKG_NAME) bin/
 	$(RM) -r $(GOPATH)
