@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Vi Grey. All rights reserved.
+ * Copyright (C) 2015 Dev Brush Technology. All rights reserved.
  * Copyright (C) 2013-2015 Yasuhiro Matsumoto,
  * http://mattn.kaoriya.net <mattn.jp@gmail.com>
  *

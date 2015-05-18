@@ -2,7 +2,7 @@
 
 _A Console Based Password Management Program_
 
-**_LatchBox is created by Vi Grey ([http://pariahvi.com](http://pariahvi.com)) <[development@pariahvi.com](mailto:development@pariahvi.com)> and is licensed under the BSD 2-Clause License.  Read LICENSE and THIRD-PARTY-LICENSES for more license text and information._**
+**_LatchBox Core is created by Dev Brush Technology (http://devbrush.com) <feedback@devbrush.com> and is licensed under the BSD 2-Clause License.  Read LICENSE for more license text._**
 
 #### Description:
 LatchBox is a free and open-source password manager that saves account information in an AES-256 encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase or a keyfile.

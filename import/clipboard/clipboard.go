@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 Vi Grey. All rights reserved.
+ * Copyright (C) 2014-2015 Dev Brush Technology. All rights reserved.
  * Copyright (C) 2013 Ato Araki. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

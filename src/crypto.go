@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, Vi Grey
+ * Copyright (C) 2014-2015, Dev Brush Technology
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 package main
 
 import (
-  "github.com/PariahVi/latchbox/import/bcrypt"
+  "github.com/DevBrush/latchbox/import/bcrypt"
   "crypto/aes"
   "crypto/cipher"
   "crypto/rand"

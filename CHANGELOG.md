@@ -1,9 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.1.3.2 - 2015-05-17
 ### Changed
-- Rewriting in C++ with ncursesw as the user interface
+- "Latchbox" to "LatchBox" in src/latchbox.go
+- "Vi Grey" credits to "Dev Brush Technology" credits in all files
+- Fixed missing space typo in src/latchbox.go
 
 ## 1.1.3.1 - 2015-01-29
 ### Added

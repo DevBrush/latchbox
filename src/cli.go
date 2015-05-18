@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, Vi Grey
+ * Copyright (C) 2014-2015, Dev Brush Technology
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,9 @@
 package main
 
 import (
-  "github.com/PariahVi/latchbox/import/clipboard"
-  "github.com/PariahVi/latchbox/import/go-runewidth"
-  "github.com/PariahVi/latchbox/import/termbox-go"
+  "github.com/DevBrush/latchbox/import/clipboard"
+  "github.com/DevBrush/latchbox/import/go-runewidth"
+  "github.com/DevBrush/latchbox/import/termbox-go"
   "crypto/sha512"
   "io/ioutil"
   "os"

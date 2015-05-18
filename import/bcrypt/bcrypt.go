@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2015 Vi Grey. All rights reserved.
+ * Copyright (C) 2015 Dev Brush Technology. All rights reserved.
  * Copyright (C) 2011 James Keane <james.keane@gmail.com>. All rights reserved.
  * Copyright (C) 2006 Damien Miller <djm@mindrot.org>.
  * Copyright (C) 2011 ZooWar.com, All rights reserved.

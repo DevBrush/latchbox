@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, Vi Grey
+ * Copyright (C) 2014-2015, Dev Brush Technology
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,9 +39,9 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "1.1.3.1"
+  versionNum = "1.1.3.2"
   version = "v" + versionNum
-  title = "Latchbox " + version + " (Esc:QUIT"
+  title = "LatchBox " + version + " (Esc:QUIT"
   /*
    * uppercase, lowercase, digits and punctuation are used to generate
    * random passwords.
@@ -181,7 +181,7 @@ func main() {
         }
       }
     } else if strings.Index("--", os.Args[i]) != 0 {
-      fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox" +
+      fmt.Printf("latchbox: invalid option -- '%s'\nTry 'latchbox " +
                  "--help' for more information.\n", string(os.Args[i]))
       os.Exit(1)
     }
