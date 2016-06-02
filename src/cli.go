@@ -519,7 +519,25 @@ func unlockPOptions(ev termbox.Event) {
           addToMenu("Main Menu")
         }
       } else {
-        contentString = "Incorrect Passphrase/Keyfile Combination"
+        // Start of Legacy hashKey handling.  To be eventually removed.
+        hashedPassphraseLegacy := hashKeyLegacy(value, string(salt))
+        plaintextLegacy := decrypt(strippedCtext, hashedPassphraseLegacy)
+        hashPtLegacy := sha512.New()
+        hashPtLegacy.Write(plaintext)
+        ptHashLegacy := hashPt.Sum(nil)
+        if string(hash) == string(ptHashLegacy) {
+          passphrase = value
+          fileContents = plaintextLegacy
+          err := parseFile()
+          if err == nil {
+            contentString = ""
+            addToMenu("Main Menu")
+          }
+        } else {
+        // End of Legacy hashKey handling.  To be eventually removed.
+          // Move back 2 spaces when Legacy hashKey handling is removed 
+          contentString = "Incorrect Passphrase/Keyfile Combination"
+        } // Remove extra curly brace when Legacy hashKey handling removed.
       }
     }
   }
@@ -587,11 +605,30 @@ func keyfileOptions(ev termbox.Event) {
             addToMenu("Main Menu")
           }
         } else {
-          contentString = "Incorrect Passphrase/Keyfile " +
-            "Combination"
-          tmpPassphrase = ""
-          omit = true
-          subtractFromMenu(1)
+          // Start of Legacy hashKey handling.  To be eventually removed.
+          hashedPassphraseLegacy := hashKeyLegacy(tmpPassphrase, string(salt))
+          plaintextLegacy := decrypt(strippedCtext, hashedPassphraseLegacy)
+          hashPt := sha512.New()
+          hashPt.Write(plaintext)
+          ptHashLegacy := hashPt.Sum(nil)
+          if string(hash) == string(ptHashLegacy) {
+            passphrase = tmpPassphrase
+            fileContents = plaintextLegacy
+            err := parseFile()
+            if err == nil {
+              contentString = ""
+              tmpPassphrase = ""
+              addToMenu("Main Menu")
+            }
+          } else {
+          // End of Legacy hashKey handling.  To be eventually removed.
+            // Move allback 2 spaces when Legacy hashKey handling is removed 
+            contentString = "Incorrect Passphrase/Keyfile " +
+              "Combination"
+            tmpPassphrase = ""
+            omit = true
+            subtractFromMenu(1)
+          } // Remove extra curly brace when Legacy hashKey handling removed.
         }
       } else if menuList[len(menuList) - 2] == "Export" {
         if passphrase == tmpPassphrase {

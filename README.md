@@ -5,7 +5,7 @@ _A Console Based Password Management Program_
 **_LatchBox is created by Dev Brush Technology (http://devbrush.com) <feedback@devbrush.com> and is licensed under the BSD 2-Clause License.  Read LICENSE for more license text._**
 
 #### Description:
-LatchBox is a CLI based password manager that saves account information in an AES-256 encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase or a keyfile.
+LatchBox is a CLI based password manager that saves account information in an AES256-CBC encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase or a keyfile.
 
 #### Platforms:
 - BSD
@@ -18,12 +18,19 @@ LatchBox is a CLI based password manager that saves account information in an AE
 #### Optional Dependencies:
 - xclip (For BSD and GNU/Linux)
 
-#### Install:
+#### Install (GNU/Linux and OS X):
     $ make
     $ sudo make install
 
-#### Uninstall:
+#### Install (BSD):
+    $ gmake
+    $ sudo gmake install
+
+#### Uninstall (GNU/LINUX and OS X):
     $ sudo make uninstall
+
+#### Uninstall (BSD):
+    $ sudo gmake uninstall
 
 #### Usage:
     $ latchbox -h
@@ -66,7 +73,7 @@ To make a backup file of your password files in the backup folder inside of the 
 To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
 
 #### Security:
-LatchBox uses AES256 encryption to encrypt the password file.  It also uses bcrypt with a cost value of 12 followed by SHA256 to create the 256-bit key from your passphrase to encrypt the data.  If you include a keyfile for your passphrase, the SHA512 hash of the keyfile will be appended to the passphrase before the full passphrase is hashed.  The keyfile is a file that can be used to encrypt a password file and can be any file of any content size.  The first 29 bytes of the saved password file are the salt to hash the passphrase.  The next 16 bytes of the saved password file are the AES initialization vector, which acts much like a salt to make the encryption much harder to predict.  The final 64 bytes are a SHA512 hash of the unencrypted contents of the file to use as a checksum to see if your passphrase was correct to decrypt the password file.  Anything between the AES initialization vector and the final 64 bytes is the encrypted password file content, which will be a multiple of 16 bytes and at least 16 bytes long due to padding during the encryption process.
+LatchBox uses AES256-CBC encryption to encrypt the password file.  It also uses bcrypt with a cost value of 12 followed by SHA256 of the 31 byte bcrypt hash to create the 256-bit key from your passphrase to encrypt the data.  If you include a keyfile for your passphrase, the SHA512 hash of the keyfile will be appended to the passphrase before the full passphrase is hashed.  The keyfile is a file that can be used to encrypt a password file and can be any file of any content size.  The first 29 bytes of the saved password file are the salt to hash the passphrase.  The next 16 bytes of the saved password file are the AES initialization vector, which acts much like a salt to make the encryption much harder to predict.  The final 64 bytes are a SHA512 hash of the unencrypted contents of the file to use as a checksum to see if your passphrase was correct to decrypt the password file.  Anything between the AES initialization vector and the final 64 bytes is the encrypted password file content, which will be a multiple of 16 bytes and at least 16 bytes long due to padding during the encryption process.
 
 Every time the password file is overwritten by LatchBox, a new salt is generated and hashed with the passphrase to create a new encryption key.  The password file is overwritten after editing an entry, making a new entry or changing the password file passphrase.  Creating a new password file using NEW at the beginning will automatically create an encrypted password file.
 

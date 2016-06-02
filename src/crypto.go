@@ -39,16 +39,27 @@ import (
 
 /*
  * Uses bcrypt with a cost value of 12 and salt to hash passValue, then
- * uses SHA256 to hash the value that was hashed with bcrypt to create a
- * 32-bit byte slice to encrypt the password file using AES256.
+ * uses SHA256 to hash the 31 byte bcrypt output value to create a
+ * 32 byte slice to encrypt the password file using AES256.
  */
 func hashKey(passValue, salt string) []byte {
+  hashed, _ := bcrypt.Hash(passValue, salt)
+  shortenedHashed := hashed[len(hashed) - 31: len(hashed)]
+  hash := sha256.New()
+  hash.Write([]byte(shortenedHashed))
+  return hash.Sum(nil)
+}
+
+/*
+ * Legacy hashKey function.  Used to derive a key from passValue in older
+ * versions of LatchBox.  Eventually to be removed.
+ */
+func hashKeyLegacy(passValue, salt string) []byte {
   hashed, _ := bcrypt.Hash(passValue, salt)
   hash := sha256.New()
   hash.Write([]byte(hashed))
   return hash.Sum(nil)
 }
-
 
 /*
  * Pads the byte slice message and encrypts it using the byte string key and

@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.3.0 - 2016-06-02
+### Added
+- hashKeyLegacy function
+- Will create key with hashKeyLegacy function if hashKey doesn't work
+
+### Changed
+- hashKey SHA256 hashing of bcrypt now only hashes 31 byte hash of bcrypt
+- Security information on README.md to discuss change in hashing key
+- All mentions of AES256 and AES-256 replaced with AES256-CBC in README.md
+
 ## 1.1.3.2 - 2015-05-17
 ### Changed
 - "Latchbox" to "LatchBox" in src/latchbox.go
