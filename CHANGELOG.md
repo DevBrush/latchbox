@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.3.3 - 2016-06-10
+### Changed
+- Replaced DevBrush references with PawnTakesQueen for imports and Makefile
+
 ## 1.3.3.2 - 2016-06-10
 ### Changed
 - Fixed credits in man file

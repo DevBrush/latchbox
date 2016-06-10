@@ -28,7 +28,7 @@
 package main
 
 import (
-  "github.com/DevBrush/latchbox/import/bcrypt"
+  "github.com/PawnTakesQueen/latchbox/import/bcrypt"
   "crypto/aes"
   "crypto/cipher"
   "crypto/rand"

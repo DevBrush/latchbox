@@ -35,7 +35,7 @@
 package main
 
 import (
-  "github.com/DevBrush/latchbox/import/bcrypt"
+  "github.com/PawnTakesQueen/latchbox/import/bcrypt"
   "crypto/sha512"
   "encoding/csv"
   "errors"

@@ -34,9 +34,9 @@
 package main
 
 import (
-  "github.com/DevBrush/latchbox/import/clipboard"
-  "github.com/DevBrush/latchbox/import/go-runewidth"
-  "github.com/DevBrush/latchbox/import/termbox-go"
+  "github.com/PawnTakesQueen/latchbox/import/clipboard"
+  "github.com/PawnTakesQueen/latchbox/import/go-runewidth"
+  "github.com/PawnTakesQueen/latchbox/import/termbox-go"
   "crypto/sha512"
   "io/ioutil"
   "os"

@@ -32,7 +32,7 @@
 package main
 
 import (
-  "github.com/DevBrush/latchbox/import/sortutil"
+  "github.com/PawnTakesQueen/latchbox/import/sortutil"
   "strconv"
 )
 
