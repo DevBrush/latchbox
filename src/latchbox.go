@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2014-2015, Dev Brush Technology
+ * Copyright (C) 2014-2016, Vi Grey
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "1.3.3.0"
+  versionNum = "1.3.3.1"
   version = "v" + versionNum
   title = "LatchBox " + version + " (Esc:QUIT"
   /*

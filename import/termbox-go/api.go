@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2015 Dev Brush Technology.  All rights reserved
+ * Copyright (C) 2015-2016 Vi Grey.  All rights reserved
  * Copyright (C) 2012 Georg Reinke <guelfey@googlemail.com>
  * Copyright (C) 2012 nsf <no.smile.face@gmail.com>
  *

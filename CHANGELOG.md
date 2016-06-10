@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.3.1 - 2016-06-10
+### Changed
+- "Dev Brush Technology" credits to "Vi Grey" credits in all files
+- Modified website and email in README.md file
+- Added 2016 to credits
+
 ## 1.3.3.0 - 2016-06-02
 ### Added
 - hashKeyLegacy function

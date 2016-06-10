@@ -3,7 +3,7 @@ Included is the License Text for all third party software used in LatchBox.
 
 bcrypt:
 
-  Copyright (C) 2015 Dev Brush Technology. All rights reserved.
+  Copyright (C) 2015-2016 Vi Grey. All rights reserved.
   Copyright (C) 2011 James Keane <james.keane@gmail.com>. All rights reserved.
   Copyright (C) 2006 Damien Miller <djm@mindrot.org>.
   Copyright (C) 2011 ZooWar.com, All rights reserved.
@@ -37,7 +37,7 @@ bcrypt:
 
 clipboard:
 
-  Copyright (C) 2014-2015 Dev Brush Technology. All rights reserved.
+  Copyright (C) 2014-2016 Vi Grey. All rights reserved.
   Copyright (C) 2013 Ato Araki. All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,7 @@ clipboard:
 
 go-runewidth:
 
-  Copyright (C) 2015 Dev Brush Technology. All rights reserved.
+  Copyright (C) 2015-2016 Vi Grey. All rights reserved.
   Copyright (C) 2013-2015 Yasuhiro Matsumoto,
   http://mattn.kaoriya.net <mattn.jp@gmail.com>
 
@@ -94,7 +94,7 @@ go-runewidth:
 
 sortutil:
 
-  Copyright (C) 2015 Dev Brush Technology. All rights reserved.
+  Copyright (C) 2015-2016 Vi Grey. All rights reserved.
   Copyright (C) 2012 Patrick Mylund Nielsen
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -118,7 +118,7 @@ sortutil:
 
 termbox-go:
 
-  Copyright (C) 2015 Dev Brush Technology. All rights reserved.
+  Copyright (C) 2015-2016 Vi Grey. All rights reserved.
   Copyright (C) 2012 Georg Reinke <guelfey@googlemail.com>
   Copyright (C) 2012 nsf <no.smile.face@gmail.com>
 
