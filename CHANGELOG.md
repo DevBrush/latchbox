@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.3.3.4 - 2016-06-11
+### Added
+- Option to change Work Factor for bcrypt in config file
+- License text to man page
+- Language involving modifying Work Factor in README.md and man page
+- Quit with error message if user does not have read access to config file
+
 ## 1.3.3.3 - 2016-06-10
 ### Changed
 - Replaced DevBrush references with PawnTakesQueen for imports and Makefile

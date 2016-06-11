@@ -38,9 +38,9 @@ import (
 )
 
 /*
- * Uses bcrypt with a cost value of 12 and salt to hash passValue, then
- * uses SHA256 to hash the 31 byte bcrypt output value to create a
- * 32 byte slice to encrypt the password file using AES256.
+ * Uses bcrypt with a work factor cost value of workFactor and salt to hash
+ * passValue, then uses SHA256 to hash the 31 byte bcrypt output value to
+ * create a 32 byte slice to encrypt the password file using AES256.
  */
 func hashKey(passValue, salt string) []byte {
   hashed, _ := bcrypt.Hash(passValue, salt)

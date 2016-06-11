@@ -34,6 +34,7 @@ package main
 import (
   "errors"
   "io/ioutil"
+  "strconv"
   "strings"
 )
 
@@ -224,10 +225,29 @@ func configParse() {
               configLineSplit[1][first: last]) == "true" {
             backup = true
           }
+        } else if configLineSplit[0] == "workFactor" {
+          workFactor = 12
+          invalid := false
+          workFactorValue, err := strconv.Atoi(
+            configLineSplit[1][first: last])
+          if err == nil {
+            if workFactorValue > 3 && workFactorValue < 32 {
+              workFactor = workFactorValue
+            } else {
+              invalid = true
+            }
+          } else {
+            invalid = true
+          }
+          if invalid {
+            panic("Invalid Work Factor")
+          }
         } else if configLineSplit[0] == "defaultPasswordFile" {
           defaultFile = configLineSplit[1][first: last]
         }
       }
     }
+  } else {
+    panic("Unable to Read Config File " + configFile)
   }
 }

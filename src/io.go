@@ -76,7 +76,7 @@ func writeData() error {
   }
   data = append(groupHeader(), data...)
   data = append(intByte(int64(protocolVersion), 2), data...)
-  salt, _ := bcrypt.Salt()
+  salt, _ := bcrypt.Salt(workFactor)
   key := hashKey(passphrase, salt)
   hashPt := sha512.New()
   hashPt.Write([]byte(data))
@@ -129,7 +129,7 @@ func doBackup() {
 func makeConfig() {
   usr, _ := user.Current()
   configDir = usr.HomeDir + "/.latchbox/"
-  configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
+  configContent := "makeBackups = \"true\"\n\nworkFactor = \"12\"\n\ndefaultPasswordFile = \"" +
     configDir + "passwords.lbp\""
   if _, err := os.Stat(configDir); err != nil {
     os.MkdirAll(configDir, 0755)

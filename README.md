@@ -70,6 +70,8 @@ After starting LatchBox, a config file and latchbox folder will be created.  Tha
 
 To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure makeBackups is set to "true" (case-insensitive).
 
+To set the work factor for bcrypt, edit workFactor.  workFactor must be set to a number from "4" to "31".  The default is "12".  It is NOT recommended that you edit this value unless you know what you are doing, as increasing the value by 1 will double the amount of rounds of hashing, effectively doubling the time it takes for the hashing process to finish.
+
 To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
 
 #### Security:
