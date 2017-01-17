@@ -1,6 +1,24 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.0.0 - 2017-01-17
+### Added
+- Requirement of gb to compile
+- latchbox-spec.txt file in docs folder
+- Third party code using gb-vendor
+
+### Changed
+- doc folder to docs folder
+- src folder content moved to src/latchbox
+- AES mode to GCM
+- Key derivation function to PBKDF2
+- README.md file content to reflect the changes
+- Makefile
+
+### Removed
+- imports folder
+- Support for versions under 2.0.0
+
 ## 1.3.3.4 - 2016-06-11
 ### Added
 - Option to change Work Factor for bcrypt in config file
