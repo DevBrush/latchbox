@@ -1,0 +1,188 @@
+Category: Informational                                          Vi Grey
+                                                            January 2017
+
+
+                  LatchBox File Protocol Specification
+
+Abstract
+
+   The LatchBox file protocol is used for LatchBox files.
+
+   This document defines the protocol used for LatchBox files.
+
+Status of This Memo
+
+   This memo provides information for the Internet community.  This
+   memo does not specify an Internet standard of any kind.  Distribution
+   of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) 2016-2017, Vi Grey
+   All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
+
+   1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+   OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+   HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+   LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+   SUCH DAMAGE.
+
+
+Table of Contents
+
+   1. Introduction
+      1.1. Overview and preliminaries
+         1.1.1. Notation
+            1.1.1.1. Integers
+   Author's Address
+
+1. Introduction
+
+   LatchBox saves password files in an encrypted file with AES256-GCM.
+   This is done to keep the contents of the password file safe.
+
+1.1. Overview and preliminaries
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+   NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   RFC 2119.
+
+1.1.1. Notation
+
+   x | y -- a concatenation of the values x and y
+
+   [2 bytes] -- a sequence of 2 bytes
+
+   [00 7F FF] -- a sequence of bytes 00, 7F and FF in that order
+
+1.1.1.1. Integers
+
+   Unless otherwise stated, all integers are big-endian and unsigned.
+   For example, the byte sequence [FF 00] would be 65280.
+
+2. LatchBox File Protocol
+
+      Iterations | Salt | RSA Private Key Length | RSAPrivate Key |
+      RSA Public Key Length | RSA Public Key | Content
+
+      Iterations                               [4 bytes]
+      Salt                                     [32 bytes]
+      Content                                  [100% - 36 bytes]
+
+   Iterations is a 4 byte integer that is the amount of HMAC-SHA256
+   based PBKDF2 iterations required to derive the AES256-GCM key for the
+   LatchBox file content.  Salt is a random 32 byte value that is used
+   in the HMAC-SHA256 based PBKDF2 key derivation for the AES256-GCM key
+   to decrypt Content.  Content is the AES256-GCM encrypted LatchBox
+   file content, which has all of the data required for LatchBox.
+
+   [LatchBox MUST use 100,000 as the iteration as of 2.0.0, no matter
+    what the iterations value is in the LatchBox file]
+
+2.1. LatchBox File Encrypted Content
+
+   LatchBox file encrypted Content always follows the same format:
+
+      IV | Ciphertext
+
+      IV                                       [12 bytes]
+      Ciphertext                               [100% - 12 bytes]
+
+   IV is the 12 byte AES256-GCM initialization vector.  Ciphertext is
+   the AES256-GCM encrypted LatchBox file content.
+
+
+2.1.1. LatchBox File Decrypted Content
+
+   LatchBox file Content decrypted Ciphertext always follows the same
+   format:
+
+      Version                                  [2 bytes]
+      Group Header Length                      [4 bytes]
+      Group Header                             [Group Header Length
+                                                bytes]
+      Data Content Length                      [3 bytes]
+      Data Content                             [Data Packets Length
+                                                bytes]
+
+   Version is a 2 byte integer that is the protocol version.  Group
+   Header Length is a 4 byte integer that is the length of the Group
+   Header.  Group header is a collection of Group Packets that 
+
+   [Version is 2 as of 0.2.0.0]
+
+2.1.1.1. Group Header
+
+   The LatchBox file Group Header contains Group Packets appended to
+   each other.  Group Packets always follow the same format:
+
+      Length                                   [2 bytes]
+      Name                                     [100% - 4 bytes]
+      Pointer                                  [2 bytes]
+
+   Length is a 2 byte integer that is the length of the Group Packet.
+   Name is the human readable group name.  Pointer is a unique 2 byte
+   array used to specify the Group of a Data Packet.
+
+2.1.1.2. Data Content
+
+   The LatchBox file Data Content contains Data Packets appended to each
+   other.  Data Packets are your stored account information.  Data
+   Packets always follow the same format:
+
+      Length                                   [3 bytes]
+      Name Length                              [1 byte]
+      Name                                     [Name Length bytes]
+      Username Length                          [1 byte]
+      Username                                 [Username Length bytes]
+      Password Length                          [2 bytes]
+      Password                                 [Password Length bytes]
+      Email Length                             [1 byte]
+      Email                                    [Email Length bytes]
+      URL Length                               [1 byte]
+      URL                                      [URL Length bytes]
+      Group                                    [2 bytes]
+      Created                                  [8 bytes]
+      Modified                                 [8 bytes]
+      Comments                                 [100% - Name Length -
+                                                Username Length -
+                                                Email Length -
+                                                URL Length - 27 bytes]
+
+   Length is a 3 byte integer that is the length of the rest of the
+   Data Packet.  Name Length is a 1 byte integer that is the length of
+   Name.  Name is the name for the Data Packet.  Username Length is a 1
+   byte integer that is the length of Username.  Username is the
+   username for the Data Packet.  Password Length is a 2 byte integer
+   that is the length of Password.  Password is the password of the Data
+   Packet.  Email Length is a 1 byte integer that is the length of
+   Email.  Email is the email of the Data Packet.  URL Length is a 1
+   byte integer that is the length of URL.  URL is the url of the Data
+   Packet.  Group is the 2 byte Pointer from the Group Header that
+   corresponds to the group for the Data Packet.  Created is the 8 byte
+   Unix timestamp of the created time of the Data Packet.  Modified is
+   the 8 byte Unix timestamp of the last modified time of the Data
+   Packet.  Commments is the optional comment of the Data Packet.
+
+Author's Address
+
+   Vi Grey
+
+   Email: vigrey@riseup.net

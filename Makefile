@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2016, Vi Grey
+# Copyright (C) 2014-2017, Vi Grey
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,26 +24,17 @@
 # SUCH DAMAGE.
 
 PKG_NAME := latchbox
-TMPFILE := /tmp/$(PKG_NAME)/src/github.com/PawnTakesQueen/$(PKG_NAME)
-GOPATH := /tmp/$(PKG_NAME)
-export GOPATH
 
 all:
-	mkdir -p $(TMPFILE)
-	cp -r * $(TMPFILE)
-	mv $(TMPFILE)/src/* $(TMPFILE)/
-	go install github.com/PawnTakesQueen/$(PKG_NAME)
-	mkdir -p bin
-	cp $(GOPATH)/bin/$(PKG_NAME) bin/
-	$(RM) -r $(GOPATH)
+	gb build all
 
 clean:
-	$(RM) -r bin
+	rm -rf bin
 
 install:
-	cp bin/$(PKG_NAME) /usr/bin/
-	cp doc/$(PKG_NAME).1.gz /usr/share/man/man1/
+	cp bin/$(PKG_NAME) /usr/local/bin/
+	cp docs/$(PKG_NAME).1.gz /usr/share/man/man1/
 
 uninstall:
-	$(RM) /usr/bin/$(PKG_NAME)
-	$(RM) /usr/share/man/man1/$(PKG_NAME).1.gz
+	rm -rf /usr/local/bin/$(PKG_NAME)
+	rm -rf /usr/share/man/man1/$(PKG_NAME).1.gz
