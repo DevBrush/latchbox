@@ -50,30 +50,41 @@ func inString(input, char string) bool {
  * to the bytes.
  */
 func strLenAppend(s []byte, byteNum int) []byte {
-  return append(intByte(int64(len(s)), byteNum), s...)
+  return append(numToBytes(int64(len(s)), byteNum), s...)
 }
 
-// Converts i to to a byte slice of byteNum length
-func intByte(i int64, byteNum int) []byte {
-  var numBytes []byte
-  y := byteNum - 1
-  for x := 0; x < byteNum; x++ {
-    byteVal := byte(i / int64(math.Pow(256, float64(y))))
-    i -= int64(byteVal) * int64(math.Pow(256, float64(y)))
-    numBytes = append(numBytes, byteVal)
+// Converts bytes b to an integer
+func bytesToNum(b []byte) int64 {
+  var length int64
+  y := len(b) - 1
+  for x := 0; x < len(b); x++ {
+    length += int64(b[x]) * int64(math.Pow(256, float64(y)))
     y--
+  }
+  return length
+}
+
+// Converts num to a byte array of size int
+func numToBytes(num interface{}, size int) []byte {
+  var numBytes []byte
+  y := size - 1
+  switch numVal := num.(type) {
+  case int64:
+    for x := 0; x < size; x++ {
+      byteVal := byte(numVal / int64(math.Pow(256, float64(y))))
+      numVal -= int64(byteVal) * int64(math.Pow(256, float64(y)))
+      numBytes = append(numBytes, byteVal)
+      y--
+    }
+  case int:
+    for x := 0; x < size; x++ {
+      byteVal := byte(numVal / int(math.Pow(256, float64(y))))
+      numVal -= int(byteVal) * int(math.Pow(256, float64(y)))
+      numBytes = append(numBytes, byteVal)
+      y--
+    }
+  default:
+    panic("Type of num must be int or int64")
   }
   return numBytes
-}
-
-// Converts byteString to an int
-func getLen(byteString []byte) int {
-  solution := float64(0)
-  a := len(byteString)
-  y := a - 1
-  for x := 0; x < a; x ++ {
-    solution += float64(byteString[x]) * math.Pow(256, float64(y))
-    y--
-  }
-  return int(solution)
 }

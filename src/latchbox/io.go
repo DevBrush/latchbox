@@ -62,9 +62,9 @@ func writeData() error {
       data = append(data, []byte{0, 0}...)
     }
     made := timeToUnix(created[x])
-    data = append(data, intByte(made, 8)...)
+    data = append(data, numToBytes(made, 8)...)
     edited := timeToUnix(modified[x])
-    data = append(data, intByte(edited, 8)...)
+    data = append(data, numToBytes(edited, 8)...)
     data = append(data, []byte(comments[x])...)
     dataList = append(dataList, strLenAppend(data, 3))
   }
@@ -73,11 +73,11 @@ func writeData() error {
     data = append(data, dataList[x]...)
   }
   data = append(groupHeader(), data...)
-  data = append(intByte(int64(protocolVersion), 2), data...)
+  data = append(numToBytes(int64(protocolVersion), 2), data...)
   salt := randByteArray(32)
   key := generatePBKDF2Key([]byte(passphrase), salt)
   dataEncrypt := encrypt(data, key)
-  dataEncrypt = append(append(intByte(100000, 4), salt...), dataEncrypt...)
+  dataEncrypt = append(append(numToBytes(100000, 4), salt...), dataEncrypt...)
   err := ioutil.WriteFile(fPath, dataEncrypt, 0644)
   if err != nil {
     return err

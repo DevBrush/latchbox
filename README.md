@@ -69,7 +69,7 @@ To make a backup file of your password files in the backup folder inside of the 
 To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
 
 #### Security:
-LatchBox uses AES256-GCM to encrypt the password file [see LatchBox File Specifications].  The AES256-GCM key is created by using a HMAC-SHA256 based PBKDF2 hash of the LatchBox file passphrase.  If a key file is included, a SHA512 hash of the file content will be appended to the passphrase before doing the HMAC-SHA256 based PBKDF2 of the passphrase.
+LatchBox uses AES256-GCM to encrypt the password file [see LatchBox File Specifications].  The AES256-GCM key is created by using a HMAC-SHA256 based PBKDF2 hash of the LatchBox file passphrase.  If a key file is included, an HMAC-SHA512 hash using the file content as the secret key and the passphrase as the message will be created before doing an HMAC-SHA256 based PBKDF2 hash on that value to create the AES256-GCM key.
 
 #### LatchBox File Specification:
 LatchBox File protocol specifications can be found in `docs/latchbox-spec.txt`.

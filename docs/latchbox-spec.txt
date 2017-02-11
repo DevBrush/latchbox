@@ -1,5 +1,5 @@
 Category: Informational                                          Vi Grey
-                                                            January 2017
+                                                           February 2017
 
 
                   LatchBox File Protocol Specification
@@ -28,20 +28,21 @@ Copyright Notice
    1. Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
    2. Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the
+      distribution.
 
    THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS "AS IS" AND
    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
-   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-   OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-   HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-   LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-   SUCH DAMAGE.
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+   PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE
+   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+   BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+   OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Table of Contents
@@ -86,12 +87,13 @@ Table of Contents
       Salt                                     [32 bytes]
       Content                                  [100% - 36 bytes]
 
-   Iterations is a 4 byte integer that is the amount of HMAC-SHA256
+   Iterations is a 4 byte integer that MUST be the amount of HMAC-SHA256
    based PBKDF2 iterations required to derive the AES256-GCM key for the
-   LatchBox file content.  Salt is a random 32 byte value that is used
-   in the HMAC-SHA256 based PBKDF2 key derivation for the AES256-GCM key
-   to decrypt Content.  Content is the AES256-GCM encrypted LatchBox
-   file content, which has all of the data required for LatchBox.
+   LatchBox file content.  Salt MUST be a random 32 byte value that is
+   used in the HMAC-SHA256 based PBKDF2 key derivation for the
+   AES256-GCM key to decrypt Content.  Content MUST be the AES256-GCM
+   encrypted LatchBoe file content, which has all of the data required
+   for LatchBox.
 
    [LatchBox MUST use 100,000 as the iteration as of 2.0.0, no matter
     what the iterations value is in the LatchBox file]
@@ -105,8 +107,9 @@ Table of Contents
       IV                                       [12 bytes]
       Ciphertext                               [100% - 12 bytes]
 
-   IV is the 12 byte AES256-GCM initialization vector.  Ciphertext is
-   the AES256-GCM encrypted LatchBox file content.
+   IV MUST be the 12 byte AES256-GCM initialization vector, which MUST
+   NOT be reused. Ciphertext MUST be the AES256-GCM encrypted LatchBox
+   file content.
 
 
 2.1.1. LatchBox File Decrypted Content
@@ -122,9 +125,10 @@ Table of Contents
       Data Content                             [Data Packets Length
                                                 bytes]
 
-   Version is a 2 byte integer that is the protocol version.  Group
-   Header Length is a 4 byte integer that is the length of the Group
-   Header.  Group header is a collection of Group Packets that 
+   Version is a 2 byte integer that MUST be the protocol version.
+   Group Header Length is a 4 byte integer that MUST be the length of
+   the Group Header.  Group header MUST be the collection of Group
+   Packets.
 
    [Version is 2 as of 0.2.0.0]
 
@@ -137,9 +141,9 @@ Table of Contents
       Name                                     [100% - 4 bytes]
       Pointer                                  [2 bytes]
 
-   Length is a 2 byte integer that is the length of the Group Packet.
-   Name is the human readable group name.  Pointer is a unique 2 byte
-   array used to specify the Group of a Data Packet.
+   Length is a 2 byte integer that MUST be the length of the Group
+   Packet.  Name is the human readable group name.  Pointer MUST be a
+   unique 2 byte array used to specify the Group of a Data Packet.
 
 2.1.1.2. Data Content
 
@@ -166,20 +170,21 @@ Table of Contents
                                                 Email Length -
                                                 URL Length - 27 bytes]
 
-   Length is a 3 byte integer that is the length of the rest of the
-   Data Packet.  Name Length is a 1 byte integer that is the length of
-   Name.  Name is the name for the Data Packet.  Username Length is a 1
-   byte integer that is the length of Username.  Username is the
-   username for the Data Packet.  Password Length is a 2 byte integer
-   that is the length of Password.  Password is the password of the Data
-   Packet.  Email Length is a 1 byte integer that is the length of
-   Email.  Email is the email of the Data Packet.  URL Length is a 1
-   byte integer that is the length of URL.  URL is the url of the Data
-   Packet.  Group is the 2 byte Pointer from the Group Header that
-   corresponds to the group for the Data Packet.  Created is the 8 byte
-   Unix timestamp of the created time of the Data Packet.  Modified is
-   the 8 byte Unix timestamp of the last modified time of the Data
-   Packet.  Commments is the optional comment of the Data Packet.
+   Length is a 3 byte integer that MUST be the length of the rest of the
+   Data Packet.  Name Length is a 1 byte integer that MUST be the length
+   of Name.  Name MUST be the name for the Data Packet.  Username Length
+   is a 1 byte integer that MUST be the length of Username.  Username
+   MUST be the username for the Data Packet.  Password Length is a 2
+   byte integer that MUST be the length of Password.  Password MUST be
+   the password of the Data Packet.  Email Length is a 1 byte integer
+   that MUST be the length of Email.  Email MUST be the email of the
+   Data Packet.  URL Length is a 1 byte integer that MUST be the length
+   of URL.  URL MUST be the url of the Data Packet.  Group MUST be the 2
+   byte Pointer from the Group Header that corresponds to the group for
+   the Data Packet.  Created MUST be the 8 byte Unix timestamp of the
+   created time of the Data Packet.  Modified MUST be the 8 byte Unix
+   timestamp of the last modified time of the Data Packet.  Commments
+   MUST be the optional comment of the Data Packet.
 
 Author's Address
 

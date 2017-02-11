@@ -31,8 +31,10 @@ import (
   "golang.org/x/crypto/pbkdf2"
   "crypto/aes"
   "crypto/cipher"
+  "crypto/hmac"
   "crypto/rand"
   "crypto/sha256"
+  "crypto/sha512"
   "math/big"
   "strconv"
 )
@@ -52,7 +54,13 @@ func encrypt(message, key []byte) []byte {
   if err != nil {
     panic(err)
   }
-  iv := randByteArray(12)
+  /*
+   * Add one to aesGCMIV, roll value over to 0 if the uint64 value hits
+   * 2 ** 64 - 1
+   */
+  aesGCMIV = int64(uint64(aesGCMIV) + 1 % 18446744073709551615)
+  // Pad aesGCMIV value with 4 random bytes to create the iv value
+  iv := append(numToBytes(aesGCMIV, 8), randByteArray(4)...)
   mode, err := cipher.NewGCM(block)
   if err != nil {
     return []byte{}
@@ -74,6 +82,7 @@ func decrypt(ciphertext, key []byte) ([]byte, bool) {
     panic(err)
   }
   iv := ciphertext[:12]
+  aesGCMIV = bytesToNum(iv[:8])
   ct := ciphertext[12:]
   mode, err := cipher.NewGCM(block)
   block = nil
@@ -158,4 +167,14 @@ func genPass (pLen uint16, ulds []bool) string {
     }
   }
   return string(password)
+}
+
+/*
+ * Creates a new HMAC of message using key as the key with the hashing
+ * algorithm SHA512
+ */
+func newHMAC(message string, key []byte) string {
+  sig := hmac.New(sha512.New, key)
+  sig.Write([]byte(message))
+  return string(sig.Sum(nil))
 }

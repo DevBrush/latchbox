@@ -47,7 +47,7 @@ func parseFile() error {
   var packetPointer int
   var hGroupPointer string
   if len(fileContents) >= 2 {
-    pFileVersion = uint16(getLen(fileContents[pointer: pointer + 2]))
+    pFileVersion = uint16(bytesToNum(fileContents[pointer: pointer + 2]))
   } else {
     err = true
   }
@@ -158,7 +158,7 @@ func parseInfo(packet []byte, byteLen int, pointer *int, err *bool) (
   var pLen int
   var pContent []byte
   if len(packet) - *pointer >= byteLen && !*err {
-    pLen = getLen(packet[*pointer: *pointer + byteLen])
+    pLen = int(bytesToNum(packet[*pointer: *pointer + byteLen]))
   } else {
     *err = true
   }
@@ -182,7 +182,7 @@ func parseCt(fc []byte) (iterations int, salt, ct []byte, err error) {
   if len(fc) < 36 {
     return 0, nil, nil, errors.New("latchbox file content too short")
   }
-  return getLen(fc[:4]), fc[4: 36], fc[36:], nil
+  return int(bytesToNum(fc[:4])), fc[4: 36], fc[36:], nil
 }
 
 /*

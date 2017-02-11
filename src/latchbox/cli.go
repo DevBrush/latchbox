@@ -37,7 +37,6 @@ import (
   "github.com/atotto/clipboard"
   "github.com/mattn/go-runewidth"
   "github.com/nsf/termbox-go"
-  "crypto/sha512"
   "io/ioutil"
   "os"
   "strconv"
@@ -549,10 +548,7 @@ func keyfileOptions(ev termbox.Event) {
     if err != nil {
       contentString = "Cannot Open Keyfile"
     } else {
-      hashContent := sha512.New()
-      hashContent.Write(keyfileContent)
-      contentHash := hashContent.Sum(nil)
-      tmpPassphrase += string(contentHash)
+      tmpPassphrase = newHMAC(tmpPassphrase, keyfileContent)
       if menuList[len(menuList) - 2] == "Secure Password" {
         passphrase = tmpPassphrase
         err := writeData()

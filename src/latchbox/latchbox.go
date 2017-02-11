@@ -39,7 +39,7 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "2.0.0"
+  versionNum = "2.0.1"
   version = "v" + versionNum
   title = "LatchBox " + version + " (Esc:QUIT"
   /*
@@ -69,6 +69,7 @@ var (
   passwords, urls, usernames []string
   menuList = []string{menu}
   entryNumber, h, passLen, top, w int
+  aesGCMIV int64
   orderList []int
   pFileVersion uint16
   groupDict = make(map[string]string)

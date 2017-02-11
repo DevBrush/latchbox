@@ -10,7 +10,7 @@
 		{
 			"importpath": "github.com/mattn/go-runewidth",
 			"repository": "https://github.com/mattn/go-runewidth",
-			"revision": "737072b4e32b7a5018b4a7125da8d12de90e8045",
+			"revision": "14207d285c6c197daabb5c9793d63e7af9ab2d50",
 			"branch": "master"
 		},
 		{
@@ -28,7 +28,7 @@
 		{
 			"importpath": "golang.org/x/crypto/pbkdf2",
 			"repository": "https://go.googlesource.com/crypto",
-			"revision": "13d9f6188e639cb843a0568d05540a4cec71cc14",
+			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
 			"branch": "master",
 			"path": "/pbkdf2"
 		}

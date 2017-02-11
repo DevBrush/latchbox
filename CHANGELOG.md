@@ -1,6 +1,19 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.1.0 - 2017-02-11
+### Changed
+- Made AES-GCM IV value unique rather than random
+- Using HMAC-SHA512 with the key file as the HMAC secret key and the
+  passphrase as the message if a key file is used
+- latchbox-spec.txt to add more definitive language
+- README.md file content to reflect the changes
+- Updated go-runewidth to v0.0.2
+
+### Removed
+- Support for versions under 2.1.0, due to the new way key files are
+  handled
+
 ## 2.0.0 - 2017-01-17
 ### Added
 - Requirement of gb to compile
