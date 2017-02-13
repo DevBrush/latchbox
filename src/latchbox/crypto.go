@@ -170,7 +170,7 @@ func genPass (pLen uint16, ulds []bool) string {
 }
 
 /*
- * Creates a new HMAC of message using key as the key with the hashing
+ * Creates a new HMAC of message using key as the secret key with the hashing
  * algorithm SHA512
  */
 func newHMAC(message string, key []byte) string {

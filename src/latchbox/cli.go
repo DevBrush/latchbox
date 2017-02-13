@@ -375,6 +375,7 @@ func securePOptions(ev termbox.Event) {
           addToMenu("Keyfile")
         } else {
           passphrase = value
+          aesGCMIV = bytesToNum(randByteArray(8))
           err := writeData()
           if err != nil {
             contentString = "Unable to Create Password File"
@@ -528,10 +529,8 @@ func keyfileSettings() {
   termbox.SetCursor(len(bottomCaption) + edit_box.CursorX(), h - 1)
 }
 
-/*
- * Allows keyfile to be included.  If included, the file's contents will
- * be hashed with SHA512 and appended to the passphrase before hashing
- * the key (passphrase) for encryption/decryption of the password file.
+/* Allows a keyfile to be included.  If it is included, the passphrase will be
+ * hashed with HMAC-SHA512, where the secret key is the keyfile's content.
  */
 func keyfileOptions(ev termbox.Event) {
   var valueEntered bool
@@ -551,6 +550,7 @@ func keyfileOptions(ev termbox.Event) {
       tmpPassphrase = newHMAC(tmpPassphrase, keyfileContent)
       if menuList[len(menuList) - 2] == "Secure Password" {
         passphrase = tmpPassphrase
+        aesGCMIV = bytesToNum(randByteArray(8))
         err := writeData()
         if err != nil {
           contentString = "Unable to Create Password File"

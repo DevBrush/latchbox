@@ -52,7 +52,7 @@ func getTime(packet []byte, entryList *[]string, pointer *int, err *bool) {
   } else {
     *err = true
   }
-  *pointer += 4
+  *pointer += 8
 }
 
 /* Convert YYYY-MM-DD hh:mm:ss timestamp to local Unix time. */

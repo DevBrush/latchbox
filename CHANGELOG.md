@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.1.1 - 2017-02-13
+### Changed
+- Fixed parsing error for getTime function in unixtime.go
+- Fixed a comment about SHA512
+- Fixed version number
+- Made first AES-GCM IV a random 8 byte array
+
 ## 2.1.0 - 2017-02-11
 ### Changed
 - Made AES-GCM IV value unique rather than random
