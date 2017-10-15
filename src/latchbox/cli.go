@@ -375,7 +375,7 @@ func securePOptions(ev termbox.Event) {
           addToMenu("Keyfile")
         } else {
           passphrase = value
-          aesGCMIV = bytesToNum(randByteArray(8))
+          nonce = bytesToNum(randByteArray(8))
           err := writeData()
           if err != nil {
             contentString = "Unable to Create Password File"
@@ -413,7 +413,7 @@ func openPSettings() {
     if err != nil {
       tmpDefault = ""
     } else {
-      _, _, _, err := parseCt(ciphertext)
+      _, _, _, _, _, err := parseCt(ciphertext)
       if err != nil {
         tmpDefault = ""
       } else {
@@ -452,7 +452,7 @@ func openPOptions(ev termbox.Event) {
     if err != nil {
       contentExtra = "Unable to Read File \"" + value + "\""
     } else {
-      _, _, _, err := parseCt(ciphertext)
+      _, _, _, _, _, err := parseCt(ciphertext)
       if err != nil {
         contentExtra = "Password File Invalid/Corrupted"
       } else {
@@ -504,10 +504,10 @@ func unlockPOptions(ev termbox.Event) {
       tmpPassphrase = value
       addToMenu("Keyfile")
     } else {
-      _, salt, strippedCtext, _ := parseCt(ciphertext)
-      hashedPassphrase := generatePBKDF2Key([]byte(value), salt)
-      if plaintext, decrypted := decrypt(strippedCtext,
-                                         hashedPassphrase); decrypted {
+      ciph, iter, salt, strippedCtext, old, _ := parseCt(ciphertext)
+      hashedPassphrase := generatePBKDF2Key([]byte(value), salt, iter)
+      if plaintext, decrypted := decrypt(strippedCtext, hashedPassphrase,
+                                         ciph, old); decrypted {
         passphrase = value
         fileContents = plaintext
         err := parseFile()
@@ -550,7 +550,7 @@ func keyfileOptions(ev termbox.Event) {
       tmpPassphrase = newHMAC(tmpPassphrase, keyfileContent)
       if menuList[len(menuList) - 2] == "Secure Password" {
         passphrase = tmpPassphrase
-        aesGCMIV = bytesToNum(randByteArray(8))
+        nonce = bytesToNum(randByteArray(8))
         err := writeData()
         if err != nil {
           contentString = "Unable to Create Password File"
@@ -562,10 +562,11 @@ func keyfileOptions(ev termbox.Event) {
         tmpPassphrase = ""
       } else if menuList[len(menuList) - 2] == "Unlock Password" {
         ciphertext, _ := ioutil.ReadFile(fPath)
-        _, salt, strippedCtext, _ := parseCt(ciphertext)
-        hashedPassphrase := generatePBKDF2Key([]byte(tmpPassphrase), salt)
-        if plaintext, decrypted := decrypt(strippedCtext,
-                                           hashedPassphrase); decrypted {
+        ciph, iter, salt, strippedCtext, old, _ := parseCt(ciphertext)
+        hashedPassphrase := generatePBKDF2Key([]byte(tmpPassphrase), salt,
+                                              iter)
+        if plaintext, decrypted := decrypt(strippedCtext, hashedPassphrase,
+                                           ciph, old); decrypted {
           passphrase = tmpPassphrase
           fileContents = plaintext
           err := parseFile()

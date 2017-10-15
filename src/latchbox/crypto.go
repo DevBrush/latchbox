@@ -29,6 +29,7 @@ package main
 
 import (
   "golang.org/x/crypto/pbkdf2"
+  "golang.org/x/crypto/chacha20poly1305"
   "crypto/aes"
   "crypto/cipher"
   "crypto/hmac"
@@ -40,56 +41,81 @@ import (
 )
 
 /*
- * Generates a key from auth using HMAC-SHA256 based PBKDF2 with 100,000
+ * Generates a key from auth using HMAC-SHA256 based PBKDF2 with iter number of
  * iterations
  */
-func generatePBKDF2Key(auth, salt []byte) []byte {
-  return pbkdf2.Key(auth, salt, 100000, 32, sha256.New)
+func generatePBKDF2Key(auth, salt []byte, iter uint32) []byte {
+  return pbkdf2.Key(auth, salt, int(iter), 32, sha256.New)
 }
 
-// Encrypts plaintext using key with AES256-GCM and returns the ciphertext
-func encrypt(message, key []byte) []byte {
-  var err error
-  block, err := aes.NewCipher(key)
-  if err != nil {
-    panic(err)
-  }
+// Encrypts plaintext using key and ciph and returns the ciphertext
+func encrypt(message, key []byte, ciph int) []byte {
   /*
-   * Add one to aesGCMIV, roll value over to 0 if the uint64 value hits
+   * Add one to nonce, roll value over to 0 if the uint64 value hits
    * 2 ** 64 - 1
    */
-  aesGCMIV = int64(uint64(aesGCMIV) + 1 % 18446744073709551615)
-  // Pad aesGCMIV value with 4 random bytes to create the iv value
-  iv := append(numToBytes(aesGCMIV, 8), randByteArray(4)...)
-  mode, err := cipher.NewGCM(block)
-  if err != nil {
-    return []byte{}
+  nonce = nonce + 1 % 18446744073709551615
+  // Pad nonce value with 4 random bytes to create the iv value
+  iv := append(numToBytes(nonce, 8), randByteArray(4)...)
+  var mode cipher.AEAD
+  if ciph == AES256GCM {
+    block, err := aes.NewCipher(key)
+    if err != nil {
+      panic(err)
+    }
+    mode, err = cipher.NewGCM(block)
+    if err != nil {
+      panic(err)
+    }
+  } else if ciph == CHACHA20POLY1305 {
+    var err error
+    mode, err = chacha20poly1305.New(key)
+    if err != nil {
+      panic(err)
+    }
+  } else {
+    panic("Invalid Cipher")
   }
-  ciphertext := mode.Seal(nil, iv, message, nil)
+  additionalData := []byte("LatchBox")
+  ciphertext := mode.Seal(nil, iv, message, additionalData)
   return append(iv, ciphertext...)
 }
 
 /*
- * Decrypts ciphertext using key with AES256-GCM and returns the plaintext and
+ * Decrypts ciphertext using key and ciph and returns the plaintext and
  * whether or not the content was decrypted
  */
-func decrypt(ciphertext, key []byte) ([]byte, bool) {
+func decrypt(ciphertext, key []byte, ciph int, old bool) ([]byte, bool) {
   if len(ciphertext) < 12 {
     return nil, false
   }
-  block, err := aes.NewCipher(key)
-  if err != nil {
-    panic(err)
-  }
   iv := ciphertext[:12]
-  aesGCMIV = bytesToNum(iv[:8])
+  nonce = bytesToNum(iv[:8])
   ct := ciphertext[12:]
-  mode, err := cipher.NewGCM(block)
-  block = nil
-  if err != nil {
-    panic(err)
+  var mode cipher.AEAD
+  if ciph == AES256GCM {
+    block, err := aes.NewCipher(key)
+    if err != nil {
+      panic(err)
+    }
+    mode, err = cipher.NewGCM(block)
+    if err != nil {
+      panic(err)
+    }
+  } else if ciph == CHACHA20POLY1305 {
+    var err error
+    mode, err = chacha20poly1305.New(key)
+    if err != nil {
+      panic(err)
+    }
+  } else {
+    panic("Invalid Cipher")
   }
-  plaintext, err := mode.Open(nil, iv, ct, nil)
+  var additionalData []byte = nil
+  if !old {
+    additionalData = []byte("LatchBox")
+  }
+  plaintext, err := mode.Open(nil, iv, ct, additionalData)
   mode = nil
   if err != nil {
     return nil, false

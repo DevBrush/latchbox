@@ -1,6 +1,19 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 3.0.0 - 2017-10-15
+### Added
+- Chacha20Poly1305 support
+- Ability to use different ciphers (Chacha20Poly1305 or AES256-GCM)
+- PBKDF2 iteration timer to set default iterations
+- Initial Warrant Canary
+- Forward Compatible Cipher Modes
+
+### Changed
+- Encrypted Deadmann File Syntax
+- Iteration management (No longer hard set to 100,000)
+- Mentions of AES-GCM IV value to Nonce
+
 ## 2.1.1 - 2017-02-13
 ### Changed
 - Fixed parsing error for getTime function in unixtime.go

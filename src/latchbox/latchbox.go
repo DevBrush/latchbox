@@ -39,7 +39,7 @@ import (
 const (
   /* Protocol Version to save password file under.*/
   protocolVersion = 2
-  versionNum = "2.1.1"
+  versionNum = "3.0.0"
   version = "v" + versionNum
   title = "LatchBox " + version + " (Esc:QUIT"
   /*
@@ -54,6 +54,8 @@ const (
   timeLayout = "2006-01-02 15:04:05"
   /* YYYYMMDDhhmmss 24-hour time (computer's localtime) */
   backupLayout = "20060102150405"
+  AES256GCM = 0
+  CHACHA20POLY1305 = 1
 )
 
 var (
@@ -69,7 +71,9 @@ var (
   passwords, urls, usernames []string
   menuList = []string{menu}
   entryNumber, h, passLen, top, w int
-  aesGCMIV int64
+  cipherType = CHACHA20POLY1305
+  iterations uint32
+  nonce uint64
   orderList []int
   pFileVersion uint16
   groupDict = make(map[string]string)
@@ -157,6 +161,7 @@ func main() {
       versionPrint()
     }
   } else {
+    getIterationsFromPBKDF2Test()
     cli()
   }
 }

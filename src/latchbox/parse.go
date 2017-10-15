@@ -34,6 +34,7 @@ package main
 import (
   "errors"
   "io/ioutil"
+  "strconv"
   "strings"
 )
 
@@ -178,11 +179,19 @@ func parseInfo(packet []byte, byteLen int, pointer *int, err *bool) (
  * of fc isn't at least 36 (length of iteration bytes, salt and AES256-GCM IV),
  * an error is returned.
  */
-func parseCt(fc []byte) (iterations int, salt, ct []byte, err error) {
+func parseCt(fc []byte) (ciph int, iter uint32, salt, ct []byte, old bool,
+                         err error) {
   if len(fc) < 36 {
-    return 0, nil, nil, errors.New("latchbox file content too short")
+    return 0, 0, nil, nil, false, errors.New("latchbox file content too short")
   }
-  return int(bytesToNum(fc[:4])), fc[4: 36], fc[36:], nil
+  if bytesToNum(fc[:4]) == 100000 {
+    return 0, uint32(bytesToNum(fc[:4])), fc[4: 36], fc[36:], true, nil
+  }
+  if len(fc) < 38 {
+    return 0, 0, nil, nil, false, errors.New("latchbox file content too short")
+  }
+  return int(bytesToNum(fc[:2])), uint32(bytesToNum(fc[2:6])), fc[6: 38],
+         fc[38:], false, nil
 }
 
 /*
@@ -218,6 +227,24 @@ func configParse() {
           }
         } else if configLineSplit[0] == "defaultPasswordFile" {
           defaultFile = configLineSplit[1][first: last]
+        } else if configLineSplit[0] == "cipher" {
+          ciph := configLineSplit[1][first: last]
+          if strings.ToLower(ciph) == "chacha20poly1305" {
+            cipherType = CHACHA20POLY1305
+          } else if strings.ToLower(ciph) == "aes256-gcm" {
+            cipherType = AES256GCM
+          } else {
+            panic("Invalid Cipher in Config File")
+          }
+        } else if configLineSplit[0] == "iterations" {
+          iter, err := strconv.Atoi(configLineSplit[1][first: last])
+          if err != nil {
+            panic("Iterations must be an integer")
+          }
+          if iter < 100000 {
+            panic("Iterations must be at least 100000")
+          }
+          iterations = uint32(iter)
         }
       }
     }

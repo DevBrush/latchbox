@@ -26,11 +26,25 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "golang.org/x/crypto/chacha20poly1305",
+			"repository": "https://go.googlesource.com/crypto",
+			"revision": "9419663f5a44be8b34ca85f08abc5fe1be11f8a3",
+			"branch": "master",
+			"path": "/chacha20poly1305"
+		},
+		{
 			"importpath": "golang.org/x/crypto/pbkdf2",
 			"repository": "https://go.googlesource.com/crypto",
 			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
 			"branch": "master",
 			"path": "/pbkdf2"
+		},
+		{
+			"importpath": "golang.org/x/crypto/poly1305",
+			"repository": "https://go.googlesource.com/crypto",
+			"revision": "9419663f5a44be8b34ca85f08abc5fe1be11f8a3",
+			"branch": "master",
+			"path": "/poly1305"
 		}
 	]
 }

@@ -50,15 +50,15 @@ func inString(input, char string) bool {
  * to the bytes.
  */
 func strLenAppend(s []byte, byteNum int) []byte {
-  return append(numToBytes(int64(len(s)), byteNum), s...)
+  return append(numToBytes(uint64(len(s)), byteNum), s...)
 }
 
 // Converts bytes b to an integer
-func bytesToNum(b []byte) int64 {
-  var length int64
+func bytesToNum(b []byte) uint64 {
+  var length uint64
   y := len(b) - 1
   for x := 0; x < len(b); x++ {
-    length += int64(b[x]) * int64(math.Pow(256, float64(y)))
+    length += uint64(b[x]) * uint64(math.Pow(256, float64(y)))
     y--
   }
   return length
@@ -69,6 +69,13 @@ func numToBytes(num interface{}, size int) []byte {
   var numBytes []byte
   y := size - 1
   switch numVal := num.(type) {
+  case uint64:
+    for x := 0; x < size; x++ {
+      byteVal := byte(numVal / uint64(math.Pow(256, float64(y))))
+      numVal -= uint64(byteVal) * uint64(math.Pow(256, float64(y)))
+      numBytes = append(numBytes, byteVal)
+      y--
+    }
   case int64:
     for x := 0; x < size; x++ {
       byteVal := byte(numVal / int64(math.Pow(256, float64(y))))
@@ -84,7 +91,7 @@ func numToBytes(num interface{}, size int) []byte {
       y--
     }
   default:
-    panic("Type of num must be int or int64")
+    panic("Type of num must be int, int64, or uint64")
   }
   return numBytes
 }

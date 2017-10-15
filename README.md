@@ -5,7 +5,7 @@ _A Console Based Password Management Program_
 **_LatchBox is created by Vi Grey (https://vigrey.com) <vi@vigrey.com> and is licensed under the BSD 2-Clause License.  Read LICENSE for more license text._**
 
 #### Description:
-LatchBox is a CLI based password manager that saves account information in an AES256-GCM encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase and/or a keyfile.
+LatchBox is a CLI based password manager that saves account information in an encrypted file that can securely be accessed and stored by the user.  The encrypted password file is locked using a master passphrase and/or a keyfile.
 
 #### Platforms:
 - BSD
@@ -64,12 +64,16 @@ Just like importing, **NAME** entries will replace **/** symbols with **\** symb
 #### Config File:
 After starting LatchBox, a config file and latchbox folder will be created.  That folder will be at `$HOME/.latchbox/`.  The folder will contain a file called `config`.  You can edit the config file by changing the contents inside of the quotes.
 
-To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure makeBackups is set to "true" (case-insensitive).
+To make a backup file of your password files in the backup folder inside of the latchbox folder when your password file updates for the first time after opening the password file, make sure **makeBackups** is set to "true" (case-insensitive).
 
-To set the default password file location, edit defaultPasswordFile.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
+To set the default password file location, edit **defaultPasswordFile**.  The default password file must be empty or not exist in order to use it as the default NEW password file, otherwise if it follows what is expected of an encrypted password file, it will be the default OPEN password file.
+
+To set the encryption cipher, edit **cipher**, which is "Chacha20Poly1305" (case-insensitive) by default but can be set to "AES256-GCM" (case-insensitive).
+
+To set the number of HMAC-SHA256 based PBKDF2 iterations for making the encryption key, set **iterations**.  The number of iterations must be at least "100000" and is normally managed by the program itself.  The default number of iterations if not set is 100000 or however many iterations are required to take up 0.5 seconds, whichever is the higher amount.
 
 #### Security:
-LatchBox uses AES256-GCM to encrypt the password file [see LatchBox File Specifications].  The AES256-GCM key is created by using a HMAC-SHA256 based PBKDF2 hash of the LatchBox file passphrase.  If a key file is included, an HMAC-SHA512 hash using the file content as the secret key and the passphrase as the message will be created before doing an HMAC-SHA256 based PBKDF2 hash on that value to create the AES256-GCM key.
+LatchBox uses Chacha20Poly1305 or AES256-GCM to encrypt the password file [see LatchBox File Specifications].  The encryption key is created by using a HMAC-SHA256 based PBKDF2 hash of the LatchBox file passphrase.  If a key file is included, an HMAC-SHA512 hash using the file content as the secret key and the passphrase as the message will be created before doing an HMAC-SHA256 based PBKDF2 hash on that value to create the encryption key.
 
 #### LatchBox File Specification:
 LatchBox File protocol specifications can be found in `docs/latchbox-spec.txt`.

@@ -73,11 +73,13 @@ func writeData() error {
     data = append(data, dataList[x]...)
   }
   data = append(groupHeader(), data...)
-  data = append(numToBytes(int64(protocolVersion), 2), data...)
+  data = append(numToBytes(uint64(protocolVersion), 2), data...)
   salt := randByteArray(32)
-  key := generatePBKDF2Key([]byte(passphrase), salt)
-  dataEncrypt := encrypt(data, key)
-  dataEncrypt = append(append(numToBytes(100000, 4), salt...), dataEncrypt...)
+  key := generatePBKDF2Key([]byte(passphrase), salt, iterations)
+  dataEncrypt := encrypt(data, key, cipherType)
+  dataEncrypt = append(append(numToBytes(uint64(iterations), 4),
+                              salt...), dataEncrypt...)
+  dataEncrypt = append(numToBytes(cipherType, 2), dataEncrypt...)
   err := ioutil.WriteFile(fPath, dataEncrypt, 0644)
   if err != nil {
     return err
@@ -124,7 +126,7 @@ func makeConfig() {
   usr, _ := user.Current()
   configDir = usr.HomeDir + "/.latchbox/"
   configContent := "makeBackups = \"true\"\n\ndefaultPasswordFile = \"" +
-    configDir + "passwords.lbp\""
+    configDir + "passwords.lbp\"\n\ncipher = \"Chacha20Poly1305\""
   if _, err := os.Stat(configDir); err != nil {
     os.MkdirAll(configDir, 0755)
     ioutil.WriteFile(configDir + "config", []byte(configContent), 0644)
@@ -231,13 +233,19 @@ func importCSV(location string) error {
             return errors.New("Too Many Passwords in One Entry")
           }
         } else if csvLabels[y] == "url" {
+          // Get stripped URL
+          contentStripped := content
+          contentStrippedIndex := strings.Index(content, "?")
+          if contentStrippedIndex >= 0 {
+            contentStripped = content[:contentStrippedIndex]
+          }
           if len(urls) == urlsLen + x - 1 {
-            if len(content) >= 0 && len(content) < 256 {
-              if strings.ToLower(content) == "http://" ||
-                  strings.ToLower(content) == "https://" {
+            if len(contentStripped) >= 0 && len(contentStripped) < 256 {
+              if strings.ToLower(contentStripped) == "http://" ||
+                  strings.ToLower(contentStripped) == "https://" {
                 urls = append(urls, "")
               } else {
-                urls = append(urls, content)
+                urls = append(urls, contentStripped)
               }
             } else {
               contentString = "URL is Not an Expected Length"
@@ -260,12 +268,14 @@ func importCSV(location string) error {
                   group += string(content[z])
                 }
               }
-              if group[0] == ' ' || group[0] =='/' ||
-                  group[len(group) - 1] == '/' ||
-                  inString(group, "//") ||
-                  inString(group, "/ ") {
-                contentString = "Invalid Group Name " + group
-                return errors.New("Invalid Group Name " + group)
+              if len(group) > 0 {
+                if group[0] == ' ' || group[0] =='/' ||
+                   group[len(group) - 1] == '/' ||
+                   inString(group, "//") ||
+                   inString(group, "/ ") {
+                  contentString = "Invalid Group Name " + group
+                  return errors.New("Invalid Group Name " + group)
+                }
               }
               groups = append(groups, group)
             } else {
@@ -355,7 +365,7 @@ func exportCSV(location string) error {
   }
   w := csv.NewWriter(csvLocation)
   w.Write([]string{"name", "username", "password", "url",
-      "grouping", "extra"})
+      "grouping", "extra", "fav"})
   var writeErr error
   for x := range names {
     var newGroup string
@@ -375,7 +385,7 @@ func exportCSV(location string) error {
       url = urls[x]
     }
     writeErr = w.Write([]string{names[x], usernames[x], passwords[x],
-             url, newGroup, comments[x]})
+             url, newGroup, comments[x], "0"})
   }
   if writeErr != nil {
     os.Remove(location)

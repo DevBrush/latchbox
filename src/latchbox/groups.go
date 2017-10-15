@@ -101,7 +101,7 @@ func groupMap() {
       }
     }
     if !inGroupDict {
-      groupDict[group] = string(numToBytes(int64(i), 2))
+      groupDict[group] = string(numToBytes(int(i), 2))
       i++
     }
   }

@@ -1,5 +1,5 @@
 Category: Informational                                          Vi Grey
-                                                           February 2017
+                                                            October 2017
 
 
                   LatchBox File Protocol Specification
@@ -55,8 +55,8 @@ Table of Contents
 
 1. Introduction
 
-   LatchBox saves password files in an encrypted file with AES256-GCM.
-   This is done to keep the contents of the password file safe.
+   LatchBox saves password data in an encrypted file.  This is done to
+   keep the password data safe.
 
 1.1. Overview and preliminaries
 
@@ -80,36 +80,44 @@ Table of Contents
 
 2. LatchBox File Protocol
 
-      Iterations | Salt | Content
+      Cipher | Iterations | Salt | Content
 
+      Cipher                                   [2 bytes]
       Iterations                               [4 bytes]
       Salt                                     [32 bytes]
       Content                                  [100% - 36 bytes]
 
-   Iterations is a 4 byte integer that MUST be the amount of HMAC-SHA256
-   based PBKDF2 iterations required to derive the AES256-GCM key for the
-   LatchBox file content.  Salt MUST be a random 32 byte value that is
-   used in the HMAC-SHA256 based PBKDF2 key derivation for the
-   AES256-GCM key to decrypt Content.  Content MUST be the AES256-GCM
-   encrypted LatchBoe file content, which has all of the data required
-   for LatchBox.
+   Cipher MUST be one of the following
 
-   [LatchBox MUST use 100,000 as the iteration as of 2.0.0, no matter
-    what the iterations value is in the LatchBox file]
+   [00 00] -- AES256-GCM
+   [00 01] -- CHACHA20POLY1305
+
+   Cipher is a 2 byte unsigned integer that MUST be the cipher used to
+   encrypt and decrypt the content.  Iterations is a 4 byte unsigned
+   integer that MUST be the amount of HMAC-SHA256 based PBKDF2
+   iterations required to derive the encryption key for the LatchBox
+   file content.  Salt MUST be a random 32 byte value that is used in
+   the HMAC-SHA256 based PBKDF2 key derivation for the key to encrypt
+   and decrypt Content.  Content MUST be the encrypted LatchBox file
+   content, which has all of the data required for LatchBox.
+
+   [The Cipher is CHACHA20POLY1305 by default as of version 3.0.0]
 
 2.1. LatchBox File Encrypted Content
 
    LatchBox file encrypted Content always follows the same format:
 
-      IV | Ciphertext
+      Nonce | Ciphertext
 
-      IV                                       [12 bytes]
+      Nonce                                    [12 bytes]
       Ciphertext                               [100% - 12 bytes]
 
-   IV MUST be the 12 byte AES256-GCM initialization vector, which MUST
-   NOT be reused. Ciphertext MUST be the AES256-GCM encrypted LatchBox
+   Nonce MUST be the 12 byte unique Nonce used for encrypting and
+   decrypting data which MUST NOT be reused and SHOULD NOT be simply
+   randomly generated. Ciphertext MUST be the encrypted LatchBox file
+   content.  An AEAD additional data value of "LatchBox" is used to
+   verify that the encrypted LatchBox file content is indeed LatchBox
    file content.
-
 
 2.1.1. LatchBox File Decrypted Content
 
