@@ -1,0 +1,32 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+Warrant Canary (2017-10-14)
+
+As of the date above, I have never received any:
+
+  * National Security Letters.
+  * Foreign Intelligence Surveillance Court orders.
+  * Gag orders by any government.
+  * Requests by any government to include any backdoors in LatchBox.
+
+Expect an updated warrant canary by 2018-07-01T00:00:00+00:00
+
+Vi Grey
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCAAGBQJZ4tzSAAoJELRzwdpZK3aYcY8QAJAPHVVRl3k59EdRFiCJsKPp
+/seg4UNAAjreIp/oKIt2Buu5X39rp2SLhdwriP8fhC6SeMVDDw9nsryz9Dxh56tF
+msEZLr7ffg5ynt5p/1QQqFzzl+tt77Mwae+lmsQm2urNY2u2pem1mKioo9T4lsNP
+xYvxZerFtQRgSELb3VBNPfMJfPFtAeU4w0fvFCD8SxXp/L/7fndx8PuiqEey9rJx
+1FJzEChM/2h8ASUuffjThFXP3I/KAAD3QxU6TNbgNOn0ThJ8P8gDpno+7SaCQJjc
+q302Ta+dpRAsGv8P7BbTqDiaflNrTY559y/ku4hOJlddcsacwhd4dKd9HtgfNN4t
+kkk5UA+SLHYC0G9gdofxZ/Q1aTmRQTHSaPhoOGJgGiTfR3G3VrI2If2jMYiipqey
+8p8moXwkzkO9EmPLf12Odpv6pIyhpxs25rIJ0NhxL/cd6eYzlK3LoiCVODxO0wKo
+6QbVC1stNreBRU/nfRZqRs0Rh6r4PfnbkrCvto1hiTnaBVPZRnFj7qpJP73/dURk
+HfjvXqicTeWuujndHqxcdvTtqXjtVlvDWMUbJOjUEEplNieyMk/MqP+lk/MPRIi7
+ddeviXlaYPjfv+cowgTKJdi/4JPOeQBTBdWcfpT7WgLLGpZew7u9SGdPaFH/YJ3R
+qu+C9/avualKnX80ja4N
+=2ttH
+-----END PGP SIGNATURE-----

@@ -80,8 +80,7 @@ Table of Contents
 
 2. LatchBox File Protocol
 
-      Iterations | Salt | RSA Private Key Length | RSAPrivate Key |
-      RSA Public Key Length | RSA Public Key | Content
+      Iterations | Salt | Content
 
       Iterations                               [4 bytes]
       Salt                                     [32 bytes]
@@ -117,6 +116,9 @@ Table of Contents
    LatchBox file Content decrypted Ciphertext always follows the same
    format:
 
+      Version | Group Header Length | Group Header |
+      Data Content Length | Data Content
+
       Version                                  [2 bytes]
       Group Header Length                      [4 bytes]
       Group Header                             [Group Header Length
@@ -137,6 +139,8 @@ Table of Contents
    The LatchBox file Group Header contains Group Packets appended to
    each other.  Group Packets always follow the same format:
 
+      Length | Name | Pointer
+
       Length                                   [2 bytes]
       Name                                     [100% - 4 bytes]
       Pointer                                  [2 bytes]
@@ -150,6 +154,10 @@ Table of Contents
    The LatchBox file Data Content contains Data Packets appended to each
    other.  Data Packets are your stored account information.  Data
    Packets always follow the same format:
+
+      Length | Name Length | Name | Username Length | Username |
+      Password Length | Password | Email Length | Email | URL Length |
+      URL | Group | Created | Modified | Comments
 
       Length                                   [3 bytes]
       Name Length                              [1 byte]
@@ -190,4 +198,4 @@ Author's Address
 
    Vi Grey
 
-   Email: vigrey@riseup.net
+   Email: vi@vigrey.com
